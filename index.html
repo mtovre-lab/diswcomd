@@ -25,7 +25,7 @@
         </div>
 
         <!-- 2. بار القنوات والتحكم بالصوت -->
-        <div class="channels-sidebar">
+<div class="channels-sidebar">
             <div class="server-name">
                 <span>سيرفر الأصدقاء ✨</span>
                 <i class="fa-solid fa-chevron-down"></i>
@@ -42,38 +42,40 @@
                     <span>روم_المايك</span>
                 </div>
                 
-                <!-- قائمة الأسماء الصغيرة تحت القناة -->
                 <div class="voice-users-list" id="voice-users-container"></div>
             </div>
 
-            <!-- لوحة التحكم الصوتية -->
+            <div class="channels-category"><span>عقد الصداقة للابد 👥</span></div>
+            <div class="friends-permanent-list" id="friends-list-container" style="padding: 4px 8px; display: flex; flex-direction: column; gap: 4px;">
+                </div>
+
             <div class="voice-panel">
                 <div class="voice-main-controls">
                     <div class="status-container">
                         <div class="status-dot" id="status-led"></div>
-                        <span id="status">جاري تشغيل النظام...</span>
+                        <span id="status">خارج الروم</span>
                     </div>
                     
                     <div class="my-id-section">
-                        <label>الكود ديالك:</label>
+                        <label>الكود الثابت ديالك:</label>
                         <div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div>
                     </div>
 
-                    <input type="text" id="peer-id-input" placeholder="حط كود صاحبك هنا...">
-                    <div class="action-buttons" style="display: flex; gap: 4px; width: 100%;">
-                        <button id="call-btn" style="flex: 1;">اتصال</button>
-                        <button id="hangup-btn" class="hidden-btn" title="قطع الاتصال" style="background-color: #f23f43;"><i class="fa-solid fa-phone-slash"></i></button>
+                    <div id="add-friend-zone" style="display: flex; flex-direction: column; gap: 4px;">
+                        <input type="text" id="peer-id-input" placeholder="حط كود صاحبك الجديد هنا...">
+                        <input type="text" id="friend-name-input" placeholder="سمية صاحبك...">
+                        <button id="call-btn" style="background-color: #5865f2; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer;">عقد الصداقة وبدء الروم</button>
                     </div>
+                    
+                    <button id="hangup-btn" class="hidden-btn" style="background-color: #f23f43; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%;">مغادرة الروم الصوتي</button>
                 </div>
 
                 <div class="voice-buttons-sidebar">
                     <button id="mute-btn" class="unmuted" title="كتم المايك"><i id="mute-icon" class="fa-solid fa-microphone"></i></button>
                     <button id="deafen-btn" class="undeafened" title="كتم السمع"><i id="deafen-icon" class="fa-solid fa-headphones"></i></button>
-                    <button class="settings-btn"><i class="fa-solid fa-gear"></i></button>
                 </div>
             </div>
         </div>
-
         <!-- 3. منطقة الشات الكتابي -->
         <div class="chat-container" id="text-chat-view">
             <div class="chat-header">

@@ -1,18 +1,22 @@
-// 1. طلب اسم المستخدم عند الدخول للموقع
-let username = prompt("شنو هو الاسم ديالك ف السيرفر؟");
-if (!username || username.trim() === "") {
-    username = "مستخدم_مجهول";
+// 1. إدارة اسم المستخدم وحفظه ف المتصفح باش ما يسولكش كل مرة
+let username = localStorage.getItem('discord_username');
+if (!username) {
+    username = prompt("شنو هو الاسم ديالك ف السيرفر؟");
+    if (!username || username.trim() === "") username = "مستخدم_" + Math.floor(Math.random()*1000);
+    localStorage.setItem('discord_username', username);
 }
 
 const peer = new Peer(); 
 
 const myIdBox = document.getElementById('my-id');
 const peerIdInput = document.getElementById('peer-id-input');
+const friendNameInput = document.getElementById('friend-name-input');
 const callBtn = document.getElementById('call-btn');
 const hangupBtn = document.getElementById('hangup-btn');
 const statusText = document.getElementById('status');
 const statusLed = document.getElementById('status-led');
 const remoteAudio = document.getElementById('remote-audio');
+const addFriendZone = document.getElementById('add-friend-zone');
 
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
@@ -20,8 +24,8 @@ const chatBox = document.getElementById('chat-box');
 
 const voiceUsersContainer = document.getElementById('voice-users-container');
 const voiceGrid = document.getElementById('voice-grid');
+const friendsListContainer = document.getElementById('friends-list-container');
 
-// عناصر الواجهة للتحكم ف القفل والقنوات
 const btnChannelVoice = document.getElementById('btn-channel-voice');
 const voiceRoomView = document.getElementById('voice-room-view');
 const textChatView = document.getElementById('text-chat-view');
@@ -29,7 +33,7 @@ const btnChannelGeneral = document.getElementById('btn-channel-general');
 
 let localStream = null;
 let currentCall = null;
-let currentDataConn = null; // هادا هو المسؤول على الشات والسميات بيناتكم
+let currentDataConn = null; 
 let friendName = ""; 
 let isMuted = false;
 let isDeafened = false;
@@ -38,7 +42,44 @@ let isInVoiceRoom = false;
 let audioContext, analyser, microphone, javascriptNode;
 let remoteAudioContext, remoteAnalyser, remoteSource, remoteJavascriptNode;
 
-// دالة تحديث واجهة الصوت
+// 2. دالة جلب قائمة الأصدقاء الدائمين من الذاكرة (Local Storage)
+function loadPermanentFriends() {
+    friendsListContainer.innerHTML = "";
+    const savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
+    
+    savedFriends.forEach(f => {
+        const item = document.createElement('div');
+        item.style.display = "flex";
+        item.style.alignItems = "center";
+        item.style.justifyContent = "space-between";
+        item.style.padding = "6px 8px";
+        item.style.backgroundColor = "#1e1f22";
+        item.style.borderRadius = "4px";
+        item.style.fontSize = "14px";
+        
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="voice-avatar-mini friend" style="background-color: #5865f2;">${f.name.charAt(0).toUpperCase()}</div>
+                <span style="font-weight: 500;">${f.name}</span>
+            </div>
+            <button onclick="startVoiceRoomWithKey('${f.id}', '${f.name}')" style="background-color: #23a55a; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">بدء الروم</button>
+        `;
+        friendsListContainer.appendChild(item);
+    });
+}
+
+// دالة حفظ صديق جديد ف العقد للابد
+function saveFriendToContract(id, name) {
+    let savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
+    // التأكد من أن الصديق غير مسجل سابقا
+    if (!savedFriends.some(f => f.id === id)) {
+        savedFriends.push({ id: id, name: name });
+        localStorage.setItem('permanent_friends', JSON.stringify(savedFriends));
+        loadPermanentFriends();
+    }
+}
+
+// 3. دالة تحديث واجهة الروم الصوتي
 function updateVoiceRoomUI(isFriendConnected = false) {
     if (!isInVoiceRoom) {
         voiceUsersContainer.innerHTML = "";
@@ -49,7 +90,7 @@ function updateVoiceRoomUI(isFriendConnected = false) {
     voiceUsersContainer.innerHTML = "";
     voiceGrid.innerHTML = "";
 
-    // المربع الكبير ديالك
+    // مربعك الكبير
     const myCard = document.createElement('div');
     myCard.classList.add('voice-card'); 
     myCard.id = "card-me";
@@ -59,7 +100,7 @@ function updateVoiceRoomUI(isFriendConnected = false) {
     `;
     voiceGrid.appendChild(myCard);
 
-    // الاسم تحت القناة
+    // اسمك الصغير تحت القناة
     const myTag = document.createElement('div');
     myTag.classList.add('voice-user-tag');
     myTag.innerHTML = `
@@ -86,10 +127,10 @@ function updateVoiceRoomUI(isFriendConnected = false) {
         `;
         voiceUsersContainer.appendChild(friendTag);
         
-        callBtn.style.display = "none";
+        addFriendZone.style.display = "none";
         hangupBtn.style.display = "block";
     } else {
-        callBtn.style.display = "block";
+        addFriendZone.style.display = "flex";
         hangupBtn.style.display = "none";
     }
 }
@@ -103,31 +144,31 @@ function updateStatus(text, colorClass) {
 
 peer.on('open', (id) => {
     myIdBox.innerText = id;
+    loadPermanentFriends(); // تحميل الأصدقاء المعقود معهم الصداقة فوراً
     updateVoiceRoomUI(false); 
 });
 
 myIdBox.addEventListener('click', () => {
     if(myIdBox.innerText !== "جاري جلب الكود...") {
         navigator.clipboard.writeText(myIdBox.innerText);
-        alert("📋 تم نسخ كود الاتصال الخاص بك!");
+        alert("📋 تم نسخ كودك الثابت! صيفطو لصاحبك يديرو مرة وحدة ف حياتو.");
     }
 });
 
-function startMyMicrophone() {
-    if (localStream) return Promise.resolve(localStream);
-    return navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
-        video: false 
-    })
-    .then((stream) => {
+async function startMyMicrophone() {
+    if (localStream) return localStream;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
+            video: false 
+        });
         localStream = stream;
         updateStatus("متصل بالصوت", "success");
         setupLocalVoiceDetection(stream);
         return stream;
-    })
-    .catch(() => { 
-        updateStatus("المايك غير متاح", "error"); 
-    });
+    } catch (e) {
+        updateStatus("المايك غير متاح", "error");
+    }
 }
 
 function setupLocalVoiceDetection(stream) {
@@ -136,10 +177,8 @@ function setupLocalVoiceDetection(stream) {
     analyser = audioContext.createAnalyser();
     microphone = audioContext.createMediaStreamSource(stream);
     javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
-
     analyser.smoothingTimeConstant = 0.4;
     analyser.fftSize = 1024;
-
     microphone.connect(analyser);
     analyser.connect(javascriptNode);
     javascriptNode.connect(audioContext.destination);
@@ -150,14 +189,10 @@ function setupLocalVoiceDetection(stream) {
         let values = 0;
         for (let i = 0; i < array.length; i++) { values += array[i]; }
         let average = values / array.length;
-
         const myCardDOM = document.getElementById('card-me');
         if (myCardDOM) {
-            if (average > 12 && !isMuted) {
-                myCardDOM.classList.add('speaking');
-            } else {
-                myCardDOM.classList.remove('speaking');
-            }
+            if (average > 12 && !isMuted) myCardDOM.classList.add('speaking');
+            else myCardDOM.classList.remove('speaking');
         }
     };
 }
@@ -168,10 +203,8 @@ function setupRemoteVoiceDetection(remoteStream) {
     remoteAnalyser = remoteAudioContext.createAnalyser();
     remoteSource = remoteAudioContext.createMediaStreamSource(remoteStream);
     remoteJavascriptNode = remoteAudioContext.createScriptProcessor(2048, 1, 1);
-
     remoteAnalyser.smoothingTimeConstant = 0.4;
     remoteAnalyser.fftSize = 1024;
-
     remoteSource.connect(remoteAnalyser);
     remoteAnalyser.connect(remoteJavascriptNode);
     remoteJavascriptNode.connect(remoteAudioContext.destination);
@@ -182,52 +215,28 @@ function setupRemoteVoiceDetection(remoteStream) {
         let values = 0;
         for (let i = 0; i < array.length; i++) { values += array[i]; }
         let average = values / array.length;
-
         const friendCardDOM = document.getElementById('card-friend');
         if (friendCardDOM) {
-            if (average > 12 && !isDeafened) {
-                friendCardDOM.classList.add('speaking');
-            } else {
-                friendCardDOM.classList.remove('speaking');
-            }
+            if (average > 12 && !isDeafened) friendCardDOM.classList.add('speaking');
+            else friendCardDOM.classList.remove('speaking');
         }
     };
 }
 
-function monitorConnectionState(call) {
-    const pc = call.peerConnection;
-    if (pc) {
-        pc.oniceconnectionstatechange = () => {
-            if (pc.iceConnectionState === 'disconnected' || 
-                pc.iceConnectionState === 'failed' || 
-                pc.iceConnectionState === 'closed') {
-                handleFriendDisconnect();
-            }
-        };
-    }
-}
-
-/* =======================================================
-   💬 دالة استقبال ومعالجة البيانات (السميات + الميساجات)
-======================================================= */
 function setupDataConnectionHandlers(conn) {
     conn.on('data', (data) => {
-        // 1. استقبال تبادل الأسماء
         if (data.type === 'exchange-name') {
             friendName = data.name;
+            saveFriendToContract(conn.peer, data.name); // حفظ التوأم للابد ف اللائحة
             if (currentCall) updateVoiceRoomUI(true);
         }
-        
-        // 2. استقبال ميساج جديد ف الشات من عند صاحبك
         if (data.type === 'chat-message') {
             displayReceivedMessage(data.sender, data.text);
         }
     });
-    
     conn.on('close', () => { handleFriendDisconnect(); });
 }
 
-// دالة لإظهار الميساج اللي جاي من عند صاحبك ف الشات
 function displayReceivedMessage(senderName, text) {
     const row = document.createElement('div');
     row.classList.add('message-row');
@@ -242,75 +251,72 @@ function displayReceivedMessage(senderName, text) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-
-/* =======================================================
-   📡 استقبال الاتصالات المستقبلة
-======================================================= */
+// 📡 استقبال الاتصالات الدائمة (تلقائياً)
 peer.on('connection', (conn) => {
     currentDataConn = conn;
     isInVoiceRoom = true; 
-    
-    // عند فتح الاتصال، صيفط ليه سميتك ديريكت
     conn.on('open', () => {
         conn.send({ type: 'exchange-name', name: username });
     });
-    
     setupDataConnectionHandlers(conn);
 });
 
 peer.on('call', async (call) => {
     currentCall = call;
     isInVoiceRoom = true; 
-
     const stream = await startMyMicrophone();
     if(stream) {
         call.answer(stream);
         call.on('stream', (remoteStream) => {
             remoteAudio.srcObject = remoteStream;
-            updateStatus("في مكالمة نشطة", "success");
-            monitorConnectionState(call);
+            updateStatus("في الروم الصوتي 🟢", "success");
             if (friendName) updateVoiceRoomUI(true);
         });
     }
     call.on('close', () => { handleFriendDisconnect(); });
 });
 
-
 /* =======================================================
-   📞 إجراء اتصال (عند وضع كود الطرف الآخر)
+   🚀 ميزة "بدء الروم بضغطة زر" الدائمة (عقد الصداقة)
 ======================================================= */
-callBtn.addEventListener('click', async () => {
+async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
+    updateStatus("جاري بدء الروم...", "warning");
+    const stream = await startMyMicrophone();
+    if(!stream) return;
+
+    isInVoiceRoom = true; 
+    friendName = savedFriendName;
+
+    // الاتصال بالبيانات والشات
+    const conn = peer.connect(targetPeerId);
+    currentDataConn = conn;
+    conn.on('open', () => {
+        conn.send({ type: 'exchange-name', name: username });
+    });
+    setupDataConnectionHandlers(conn);
+
+    // الاتصال بالمايك
+    const call = peer.call(targetPeerId, stream);
+    currentCall = call;
+    call.on('stream', (remoteStream) => {
+        remoteAudio.srcObject = remoteStream;
+        updateStatus("في الروم الصوتي 🟢", "success");
+        updateVoiceRoomUI(true);
+        setupRemoteVoiceDetection(remoteStream);
+    });
+    call.on('close', () => { handleFriendDisconnect(); });
+    
+    // تحويل الواجهة لغرفة الصوت تلقائياً
+    btnChannelVoice.click();
+}
+
+// زر ربط الصداقة لأول مرة عادي
+callBtn.addEventListener('click', () => {
     const remoteId = peerIdInput.value.trim();
+    const fName = friendNameInput.value.trim() || "صديق";
     if (remoteId) {
-        updateStatus("جاري الاتصال...", "warning");
-        
-        const stream = await startMyMicrophone();
-        if(!stream) return; 
-
-        isInVoiceRoom = true; 
-
-        // 1. فتح شات البيانات
-        const conn = peer.connect(remoteId);
-        currentDataConn = conn;
-        
-        conn.on('open', () => {
-            conn.send({ type: 'exchange-name', name: username });
-        });
-        
-        setupDataConnectionHandlers(conn);
-
-        // 2. صيفط مكالمة المايك
-        const call = peer.call(remoteId, stream);
-        currentCall = call;
-        
-        call.on('stream', (remoteStream) => {
-            remoteAudio.srcObject = remoteStream;
-            updateStatus("في مكالمة نشطة", "success");
-            monitorConnectionState(call);
-            if (friendName) updateVoiceRoomUI(true);
-        });
-
-        call.on('close', () => { handleFriendDisconnect(); });
+        saveFriendToContract(remoteId, fName);
+        startVoiceRoomWithKey(remoteId, fName);
     }
 });
 
@@ -319,7 +325,6 @@ function handleFriendDisconnect() {
     currentCall = null;
     if (currentDataConn) { currentDataConn.close(); currentDataConn = null; }
     if (remoteJavascriptNode) remoteJavascriptNode.onaudioprocess = null;
-    friendName = "";
     isInVoiceRoom = false; 
     
     if (localStream) {
@@ -327,7 +332,7 @@ function handleFriendDisconnect() {
         localStream = null;
     }
 
-    updateStatus("خارج الروم الصوتي", "warning");
+    updateStatus("خارج الروم", "warning");
     updateVoiceRoomUI(false);
     btnChannelGeneral.click();
 }
@@ -340,7 +345,7 @@ hangupBtn.addEventListener('click', () => {
 });
 
 /* =======================================================
-   🎮 التحكم ف القنوات
+   🎮 التحكم ف القنوات والشات
 ======================================================= */
 btnChannelGeneral.addEventListener('click', () => {
     btnChannelGeneral.classList.add('active');
@@ -351,7 +356,7 @@ btnChannelGeneral.addEventListener('click', () => {
 
 btnChannelVoice.addEventListener('click', () => {
     if (!isInVoiceRoom) {
-        alert("🔒 خاصك تتصل بصاحبك بالكود أولاً باش يتفتحو قنوات السيرفر بالكامل (الشات والصوت)!");
+        alert("🔒 كليكي على زر 'بدء الروم' حدا سمية صاحبك لتحت باش تدخل!");
         return; 
     }
     btnChannelVoice.classList.add('active');
@@ -360,13 +365,9 @@ btnChannelVoice.addEventListener('click', () => {
     voiceRoomView.style.display = "flex";
 });
 
-/* =======================================================
-   💬 ميزة إرسال الميساجات الحقيقية عبر الشبكة لتوصل لصاحبك
-======================================================= */
 function appendMessage() {
     const text = messageInput.value.trim();
     if(text !== "") {
-        // 1. إظهار الميساج عندك أنت الأول ف الشات
         const row = document.createElement('div');
         row.classList.add('message-row');
         row.innerHTML = `
@@ -377,16 +378,9 @@ function appendMessage() {
             </div>
         `;
         chatBox.appendChild(row);
-        
-        // 2. صيفط الميساج لصاحبك ف الحين يلا كنتو متصلين
         if (currentDataConn && currentDataConn.open) {
-            currentDataConn.send({
-                type: 'chat-message',
-                sender: username,
-                text: text
-            });
+            currentDataConn.send({ type: 'chat-message', sender: username, text: text });
         }
-
         messageInput.value = "";
         chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -394,29 +388,25 @@ function appendMessage() {
 sendBtn.addEventListener('click', appendMessage);
 messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') appendMessage(); });
 
-// أزرار الميوت والديفن
+// أزرار كتم المايك والسمع
 const muteBtn = document.getElementById('mute-btn');
 const muteIcon = document.getElementById('mute-icon');
 muteBtn.addEventListener('click', () => {
     if (localStream) {
-        isMuted = !isMuted; 
-        localStream.getAudioTracks()[0].enabled = !isMuted;
+        isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted;
         muteBtn.className = isMuted ? "muted" : "unmuted";
         muteIcon.className = isMuted ? "fa-solid fa-microphone-slash" : "fa-solid fa-microphone";
         const myCardDOM = document.getElementById('card-me');
         if(myCardDOM && isMuted) myCardDOM.classList.remove('speaking');
     }
 });
-
 const deafenBtn = document.getElementById('deafen-btn');
 const deafenIcon = document.getElementById('deafen-icon');
 deafenBtn.addEventListener('click', () => {
-    isDeafened = !isDeafened; 
-    remoteAudio.muted = isDeafened;
+    isDeafened = !isDeafened; remoteAudio.muted = isDeafened;
     deafenBtn.className = isDeafened ? "deafened" : "undeafened";
     deafenIcon.className = isDeafened ? "fa-solid fa-ear-slash" : "fa-solid fa-headphones";
-    isMuted = isDeafened;
-    if (localStream) localStream.getAudioTracks()[0].enabled = !isMuted;
+    isMuted = isDeafened; if (localStream) localStream.getAudioTracks()[0].enabled = !isMuted;
     muteBtn.className = isMuted ? "muted" : "unmuted";
     muteIcon.className = isMuted ? "fa-solid fa-microphone-slash" : "fa-solid fa-microphone";
     const myCardDOM = document.getElementById('card-me');
