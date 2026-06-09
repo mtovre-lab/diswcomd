@@ -46,8 +46,7 @@
                 </div>
             </div>
 
-            <!-- لوحة التحكم في الصوت والاتصال البروفيسيونال -->
-            <div class="voice-panel">
+<div class="voice-panel">
                 <div class="status-container">
                     <div class="status-dot" id="status-led"></div>
                     <span id="status">جاري تشغيل النظام...</span>
@@ -58,14 +57,19 @@
                     <div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div>
                 </div>
 
-                <div class="connect-box">
+              <div class="connect-box">
                     <input type="text" id="peer-id-input" placeholder="حط كود صاحبك هنا...">
                     <button id="call-btn" title="اتصل بالصوت">
-                        <i class="fa-solid fa-phone"></i> اتصال
+                        <i class="fa-solid fa-phone"></i>
+                    </button>
+                    <button id="mute-btn" class="unmuted" title="كتم المايك">
+                        <i id="mute-icon" class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button id="deafen-btn" class="undeafened" title="كتم السمع والصوت">
+                        <i id="deafen-icon" class="fa-solid fa-headphones"></i>
                     </button>
                 </div>
             </div>
-        </div>
 
         <!-- 3. منطقة الشات الكبيرة -->
         <div class="chat-container">

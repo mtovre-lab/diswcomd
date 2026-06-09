@@ -370,3 +370,44 @@ body, html {
     font-size: 14px;
     line-height: 1.5;
 }
+/* ستايل زر الميوت الجديد */
+#mute-btn {
+    border: none;
+    padding: 0 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 45px;
+    height: 35px;
+}
+
+/* فاش يكون المايك خدام (أخضر خفيف) */
+.unmuted {
+    background-color: #4e5058;
+    color: var(--text-primary);
+}
+
+.unmuted:hover {
+    background-color: #6d6f78;
+}
+
+/* فاش تيدير الشخص ميوت (أحمر ديال ديسكورد) */
+.muted {
+    background-color: var(--discord-red) !important;
+    color: white !important;
+}
+
+.muted:hover {
+    background-color: #c93336 !important;
+}
+
+/* تعديل بسيط للكونكت بوكس باش يجمع الأزرار كاملين */
+.connect-box {
+    display: flex;
+    gap: 6px;
+    height: 35px;
+}
