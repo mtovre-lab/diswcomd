@@ -1,4 +1,3 @@
-/* الألوان الرسمية لديسكورد الحديث */
 :root {
     --bg-servers: #1e1f22;
     --bg-channels: #2b2d31;
@@ -12,402 +11,136 @@
     --bg-input: #383a40;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body, html { height: 100%; background-color: var(--bg-chat); color: var(--text-primary); overflow: hidden; }
+.discord-app { display: flex; height: 100vh; width: 100vw; }
+
+/* 1. بار السيرفرات */
+.servers-sidebar { width: 72px; background-color: var(--bg-servers); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
+.server-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; }
+.server-pill { position: absolute; right: 0; width: 4px; height: 8px; background-color: white; border-radius: 0 4px 4px 0; transition: all 0.2s ease; transform: scaleX(0); transform-origin: right; }
+.server-wrapper:hover .server-pill { transform: scaleX(1); height: 20px; }
+.active-pill { transform: scaleX(1) !important; height: 40px !important; }
+.server-icon { width: 48px; height: 48px; background-color: var(--bg-chat); color: var(--text-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; transition: all 0.2s ease; }
+.discord-logo { background-color: var(--discord-blue); font-size: 22px; }
+.server-icon:hover, .server-icon.active { border-radius: 16px; background-color: var(--discord-blue); color: white; }
+.text-icon { background-color: #4e5058; font-weight: bold; }
+.server-separator { width: 32px; height: 2px; background-color: #35363c; border-radius: 1px; margin: 4px 0; }
+.add-server { background-color: var(--bg-chat); color: var(--discord-green); }
+.add-server:hover { background-color: var(--discord-green) !important; color: white !important; }
+
+/* 2. بار القنوات */
+.channels-sidebar { width: 240px; background-color: var(--bg-channels); display: flex; flex-direction: column; }
+.server-name { height: 48px; border-bottom: 1px solid #1f2023; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 15px; }
+.channels-category { font-size: 12px; font-weight: bold; color: var(--text-muted); padding: 16px 12px 4px 12px; }
+.channels-list { padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; }
+.channel-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--text-muted); border-radius: 4px; cursor: pointer; font-size: 15px; }
+.channel-item:hover { background-color: #35373c; color: var(--text-primary); }
+.channel-item.active { background-color: #404249; color: var(--text-primary); font-weight: 500; }
+
+/* قائمة الأسماء تحت القناة */
+.voice-users-list { margin-right: 16px; display: flex; flex-direction: column; gap: 2px; padding: 2px 0; }
+.voice-user-tag { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; font-size: 14px; color: #dbdee1; }
+.voice-avatar-mini { width: 24px; height: 24px; border-radius: 50%; background-color: var(--discord-blue); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; }
+.voice-avatar-mini.friend { background-color: #23a55a; }
+
+/* 🎛️ شبكة المربعات الكبار (Voice Grid) داخل الروم الصوتي */
+.voice-grid-container {
+    flex: 1;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 150px));
+    grid-auto-rows: 200px;
+    gap: 16px;
+    justify-content: center;
+    align-content: center;
+    overflow-y: auto;
 }
 
-body, html {
-    height: 100%;
-    background-color: var(--bg-chat);
-    color: var(--text-primary);
-    overflow: hidden;
-}
-
-.discord-app {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-}
-
-/* 1. ستايل بار السيرفرات */
-.servers-sidebar {
-    width: 72px;
-    background-color: var(--bg-servers);
+/* المربع الكبير للشخص */
+.voice-card {
+    background-color: #2b2d31;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 12px;
-    gap: 8px;
-    z-index: 10;
-}
-
-.server-wrapper {
+    justify-content: center;
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease; /* أنيميشن سريعة وسلسة للوميض */
 }
 
-.server-pill {
-    position: absolute;
-    right: 0;
-    width: 4px;
-    height: 8px;
-    background-color: white;
-    border-radius: 0 4px 4px 0;
-    transition: all 0.2s ease;
-    transform: scaleX(0);
-    transform-origin: right;
+/* فاش كيكون الشخص كيهضر شعل ليه مربع بالخضر */
+.voice-card.speaking {
+    border-color: var(--discord-green) !important;
+    box-shadow: 0 0 15px rgba(35, 165, 90, 0.4) !important;
 }
 
-.server-wrapper:hover .server-pill {
-    transform: scaleX(1);
-    height: 20px;
-}
-
-.active-pill {
-    transform: scaleX(1) !important;
-    height: 40px !important;
-}
-
-.server-icon {
-    width: 48px;
-    height: 48px;
-    background-color: var(--bg-chat);
-    color: var(--text-primary);
+.voice-card-avatar {
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
+    background-color: var(--discord-blue);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.discord-logo {
-    background-color: var(--discord-blue);
-    font-size: 22px;
-}
-
-.server-icon:hover, .server-icon.active {
-    border-radius: 16px;
-    background-color: var(--discord-blue);
+    font-size: 32px;
+    font-weight: bold;
     color: white;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
-.text-icon {
-    background-color: #4e5058;
-    font-weight: bold;
+.voice-card-avatar.friend {
+    background-color: #e67e22;
 }
 
-.server-separator {
-    width: 32px;
-    height: 2px;
-    background-color: #35363c;
-    border-radius: 1px;
-    margin: 4px 0;
-}
-
-.add-server {
-    background-color: var(--bg-chat);
-    color: var(--discord-green);
-}
-
-.add-server:hover {
-    background-color: var(--discord-green) !important;
-    color: white !important;
-}
-
-/* 2. ستايل بار القنوات */
-.channels-sidebar {
-    width: 240px;
-    background-color: var(--bg-channels);
-    display: flex;
-    flex-direction: column;
-}
-
-.server-name {
-    height: 48px;
-    border-bottom: 1px solid #1f2023;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: bold;
-    font-size: 15px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.channels-category {
-    font-size: 12px;
-    font-weight: bold;
-    color: var(--text-muted);
-    padding: 16px 8px 4px 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.channels-list {
-    padding: 0 8px;
-}
-
-.channel-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    color: var(--text-muted);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 15px;
-    margin-bottom: 2px;
-    transition: background-color 0.1s, color 0.1s;
-}
-
-.channel-item:hover {
-    background-color: #35373c;
-    color: var(--text-primary);
-}
-
-.channel-item.active {
-    background-color: #404249;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.channel-icon {
+.voice-card-name {
     font-size: 16px;
-}
-
-/* لوحة التحكم الصوتية المتقدمة */
-.voice-panel {
-    margin-top: auto;
-    background-color: var(--bg-voice-panel);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-top: 1px solid #1f2023;
-}
-
-.status-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
     font-weight: 600;
-}
-
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--discord-red);
-}
-
-/* أنيميشن الوميض فاش كيتصل */
-@keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
-}
-
-.status-active {
-    background-color: var(--discord-green) !important;
-    animation: pulse 1.5s infinite;
-    box-shadow: 0 0 8px var(--discord-green);
-}
-
-.status-warning {
-    background-color: #f1c40f !important;
-}
-
-.my-id-section {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.my-id-section label {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: bold;
-}
-
-.id-badge {
-    background-color: var(--bg-servers);
-    color: #00b0f4;
-    padding: 8px;
-    border-radius: 6px;
-    font-family: monospace;
-    font-size: 13px;
-    text-align: center;
-    font-weight: bold;
-    cursor: pointer;
-    border: 1px solid #111214;
-    transition: border 0.2s;
-}
-
-.id-badge:hover {
-    border-color: var(--discord-blue);
-    background-color: #1a1b1e;
-}
-
-.connect-box {
-    display: flex;
-    gap: 6px;
-}
-
-#peer-id-input {
-    flex: 1;
-    background-color: var(--bg-input);
-    border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
-    color: white;
-    font-size: 13px;
-}
-
-#peer-id-input:focus {
-    outline: 1px solid var(--discord-blue);
-}
-
-#call-btn {
-    background-color: var(--discord-green);
-    color: white;
-    border: none;
-    padding: 0 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background-color 0.2s;
-}
-
-#call-btn:hover {
-    background-color: #1a7f43;
-}
-
-/* 3. ستايل منطقة الشات */
-.chat-container {
-    flex: 1;
-    background-color: var(--bg-chat);
-    display: flex;
-    flex-direction: column;
-}
-
-.chat-header {
-    height: 48px;
-    border-bottom: 1px solid #26272b;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.header-icon {
-    color: var(--text-muted);
-    font-size: 20px;
-    margin-left: 8px;
-}
-
-.header-title {
-    font-weight: bold;
-    font-size: 16px;
-}
-
-.header-divider {
-    width: 1px;
-    height: 16px;
-    background-color: #3f4147;
-    margin: 0 12px;
-}
-
-.header-desc {
-    color: var(--text-muted);
-    font-size: 14px;
-}
-
-.messages-view {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.system-welcome {
-    text-align: center;
-    max-width: 450px;
-    background: #2b2d31;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    border: 1px solid #3f4147;
-}
-
-.welcome-icon {
-    font-size: 48px;
-    color: var(--discord-blue);
-    margin-bottom: 16px;
-}
-
-.system-welcome h2 {
-    font-size: 22px;
-    margin-bottom: 10px;
-}
-
-.system-welcome p {
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.5;
-}
-/* ستايل زر الميوت الجديد */
-#mute-btn {
-    border: none;
-    padding: 0 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    width: 45px;
-    height: 35px;
-}
-
-/* فاش يكون المايك خدام (أخضر خفيف) */
-.unmuted {
-    background-color: #4e5058;
     color: var(--text-primary);
 }
 
-.unmuted:hover {
-    background-color: #6d6f78;
-}
+/* لوحة التحكم الصوتية التحتانية */
+.voice-panel { margin-top: auto; background-color: var(--bg-voice-panel); padding: 10px; display: flex; gap: 8px; border-top: 1px solid #1f2023; }
+.voice-main-controls { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.status-container { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--discord-green); font-weight: bold; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--discord-green); }
+.my-id-section { background: #1e1f22; padding: 6px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; }
+.my-id-section label { font-size: 10px; color: var(--text-muted); }
+.id-badge { color: #f2f3f5; font-family: monospace; font-size: 13px; font-weight: bold; cursor: pointer; }
+#peer-id-input { background-color: #111214; border: none; padding: 6px; border-radius: 4px; color: white; font-size: 11px; text-align: center; }
 
-/* فاش تيدير الشخص ميوت (أحمر ديال ديسكورد) */
-.muted {
-    background-color: var(--discord-red) !important;
-    color: white !important;
-}
+#call-btn, #hangup-btn { padding: 6px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; font-size: 12px; color: white; transition: all 0.2s; }
+#call-btn { background-color: var(--discord-green); }
+#call-btn:hover { background-color: #1a7f43; }
+.hidden-btn { display: none; }
 
-.muted:hover {
-    background-color: #c93336 !important;
-}
+.voice-buttons-sidebar { display: flex; flex-direction: column; gap: 4px; }
+.voice-buttons-sidebar button { width: 32px; height: 32px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.unmuted, .undeafened, .settings-btn { background-color: #3b3e45; color: var(--text-primary); }
+.unmuted:hover, .undeafened:hover, .settings-btn:hover { background-color: #4e525a; }
+.muted, .deafened { background-color: var(--discord-red) !important; color: white !important; }
 
-/* تعديل بسيط للكونكت بوكس باش يجمع الأزرار كاملين */
-.connect-box {
-    display: flex;
-    gap: 6px;
-    height: 35px;
-}
+/* 3. منطقة الشات */
+.chat-container { flex: 1; background-color: var(--bg-chat); display: flex; flex-direction: column; }
+.chat-header { height: 48px; border-bottom: 1px solid #26272b; display: flex; align-items: center; padding: 0 16px; }
+.header-icon { color: var(--text-muted); font-size: 18px; margin-left: 6px; }
+.header-title { font-weight: bold; font-size: 15px; }
+.header-divider { width: 1px; height: 16px; background-color: #3f4147; margin: 0 12px; }
+.header-desc { color: var(--text-muted); font-size: 13px; }
+.messages-view { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.message-row { display: flex; gap: 14px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-color: var(--discord-blue); }
+.message-content { display: flex; flex-direction: column; }
+.username { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+.message-text { color: #dbdee1; font-size: 15px; }
+
+/* بار الكتابة */
+.chat-input-wrapper { padding: 0 16px 24px 16px; display: flex; gap: 10px; }
+.input-container { flex: 1; background-color: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 12px; }
+.input-icon-plus { color: #b5bac1; font-size: 18px; cursor: pointer; }
+#message-input { flex: 1; background: none; border: none; padding: 10px; color: white; font-size: 14px; }
+#message-input:focus { outline: none; }
+.chat-input-wrapper button { background-color: var(--discord-green); color: white; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
