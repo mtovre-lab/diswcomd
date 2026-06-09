@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Clone - Premium</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبة الأيقونات ومكتبة الصوت -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div class="discord-app">
+        
+        <!-- 1. بار السيرفرات (أقصى اليمين) -->
+        <div class="servers-sidebar">
+            <div class="server-wrapper">
+                <div class="server-pill active-pill"></div>
+                <div class="server-icon discord-logo active">
+                    <i class="fa-brands fa-discord"></i>
+                </div>
+            </div>
+            <div class="server-separator"></div>
+            <div class="server-wrapper">
+                <div class="server-pill"></div>
+                <div class="server-icon text-icon">FP</div>
+            </div>
+            <div class="server-icon add-server">
+                <i class="fa-solid fa-plus"></i>
+            </div>
+        </div>
+
+        <!-- 2. بار القنوات والتحكم في الصوت -->
+        <div class="channels-sidebar">
+            <div class="server-name">
+                <span>سيرفر الأصدقاء ✨</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            
+            <div class="channels-category">قنوات صوتية</div>
+            <div class="channels-list">
+                <div class="channel-item active">
+                    <i class="fa-solid fa-volume-high channel-icon"></i>
+                    <span>روم_المايك 🔊</span>
+                </div>
+            </div>
+
+            <!-- لوحة التحكم في الصوت والاتصال البروفيسيونال -->
+            <div class="voice-panel">
+                <div class="status-container">
+                    <div class="status-dot" id="status-led"></div>
+                    <span id="status">جاري تشغيل النظام...</span>
+                </div>
+                
+                <div class="my-id-section">
+                    <label>الكود ديالك (كليك باش تنسخوا):</label>
+                    <div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div>
+                </div>
+
+                <div class="connect-box">
+                    <input type="text" id="peer-id-input" placeholder="حط كود صاحبك هنا...">
+                    <button id="call-btn" title="اتصل بالصوت">
+                        <i class="fa-solid fa-phone"></i> اتصال
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. منطقة الشات الكبيرة -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <i class="fa-solid fa-volume-high header-icon"></i>
+                <span class="header-title">روم_المايك</span>
+                <div class="header-divider"></div>
+                <span class="header-desc">هنا تقدر تهضر أنت وصاحبك بالمايك مباشرة</span>
+            </div>
+            
+            <div class="messages-view" id="chat-box">
+                <div class="system-welcome">
+                    <div class="welcome-icon"><i class="fa-solid fa-headset"></i></div>
+                    <h2>مرحباً بك في الروم الصوتي!</h2>
+                    <p>صيفط الكود ديالك لصاحبك، أولا خود الكود ديالو وحطو فـ خانة الاتصال على اليمين باش تبداو الهضرة.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- عنصر الصوت المخفي -->
+    <audio id="remote-audio" autoplay></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
