@@ -42,11 +42,16 @@ let isInVoiceRoom = false;
 let audioContext, analyser, microphone, javascriptNode;
 let remoteAudioContext, remoteAnalyser, remoteSource, remoteJavascriptNode;
 
-// 2. دالة جلب قائمة الأصدقاء الدائمين من الذاكرة (Local Storage)
+// 2. دالة جلب قائمة الأصدقاء الدائمين من الذاكرة وعرضهم مع زر الحذف
 function loadPermanentFriends() {
     friendsListContainer.innerHTML = "";
     const savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
     
+    if (savedFriends.length === 0) {
+        friendsListContainer.innerHTML = `<span style="color: #949ba4; font-size: 12px; padding: 4px 8px;">لا يوجد أصدقاء مقربين بعد.</span>`;
+        return;
+    }
+
     savedFriends.forEach(f => {
         const item = document.createElement('div');
         item.style.display = "flex";
@@ -56,16 +61,38 @@ function loadPermanentFriends() {
         item.style.backgroundColor = "#1e1f22";
         item.style.borderRadius = "4px";
         item.style.fontSize = "14px";
+        item.style.marginBottom = "4px";
         
         item.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="voice-avatar-mini friend" style="background-color: #5865f2;">${f.name.charAt(0).toUpperCase()}</div>
-                <span style="font-weight: 500;">${f.name}</span>
+            <div style="display: flex; align-items: center; gap: 8px; max-width: 60%;">
+                <div class="voice-avatar-mini friend" style="background-color: #5865f2; flex-shrink: 0;">${f.name.charAt(0).toUpperCase()}</div>
+                <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name}</span>
             </div>
-            <button onclick="startVoiceRoomWithKey('${f.id}', '${f.name}')" style="background-color: #23a55a; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">بدء الروم</button>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <button onclick="startVoiceRoomWithKey('${f.id}', '${f.name}')" style="background-color: #23a55a; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">بدء الروم</button>
+                <button onclick="deletePermanentFriend('${f.id}')" style="background-color: transparent; color: #f23f43; border: none; padding: 4px; font-size: 14px; cursor: pointer;" title="إزالة الصديق">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
         `;
         friendsListContainer.appendChild(item);
     });
+}
+
+// 🗑️ الدالة الجديدة المسؤولة عن مسح الصديق نهائياً من الذاكرة
+function deletePermanentFriend(friendId) {
+    if (confirm("واش بصح بغيتي تحيد هاد الصديق من قائمة الأصدقاء للابد؟")) {
+        let savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
+        
+        // فلترة القائمة وإزالة الصديق اللي عنده نفس الـ ID
+        savedFriends = savedFriends.filter(f => f.id !== friendId);
+        
+        // حفظ القائمة الجديدة ف الذاكرة
+        localStorage.setItem('permanent_friends', JSON.stringify(savedFriends));
+        
+        // إعادة تحديث القائمة ف الواجهة فوراً
+        loadPermanentFriends();
+    }
 }
 
 // دالة حفظ صديق جديد ف العقد للابد
@@ -411,4 +438,34 @@ deafenBtn.addEventListener('click', () => {
     muteIcon.className = isMuted ? "fa-solid fa-microphone-slash" : "fa-solid fa-microphone";
     const myCardDOM = document.getElementById('card-me');
     if(myCardDOM && isMuted) myCardDOM.classList.remove('speaking');
+});
+/* =======================================================
+   📱 كود التحكم ف قائمة التلفون المنزلقة
+======================================================= */
+const openSidebarBtn = document.getElementById('open-sidebar-btn');
+const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+const sidebar = document.getElementById('sidebar');
+
+// فتح القائمة ف التلفون
+if (openSidebarBtn && sidebar) {
+    openSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.add('active-menu');
+    });
+}
+
+// إغلاق القائمة ف التلفون عند الضغط على X
+if (closeSidebarBtn && sidebar) {
+    closeSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.remove('active-menu');
+    });
+}
+
+// إغلاق القائمة تلقائياً ف التلفون فاش الشخص يختار شي قناة (عام أو المايك)
+const channelItems = document.querySelectorAll('.channel-item');
+channelItems.forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active-menu');
+        }
+    });
 });
