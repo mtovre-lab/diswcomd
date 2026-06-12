@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Clone - Voice Grid</title>
+    <title>Discord Clone - Pro Voice & Chat</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 </head>
 <body>
 
     <div class="discord-app">
         
-        <!-- 1. بار السيرفرات -->
         <div class="servers-sidebar">
             <div class="server-wrapper">
                 <div class="server-pill active-pill"></div>
@@ -24,99 +23,6 @@
             <div class="server-icon add-server"><i class="fa-solid fa-plus"></i></div>
         </div>
 
-        <!-- 2. بار القنوات والتحكم بالصوت -->
-<div class="channels-sidebar">
-            <div class="server-name">
-                <span>سيرفر الأصدقاء ✨</span>
-                <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            
-            <div class="channels-category"><span>القنوات</span></div>
-            <div class="channels-list">
-                <div class="channel-item active" id="btn-channel-general">
-                    <i class="fa-solid fa-hashtag channel-icon"></i>
-                    <span>عام</span>
-                </div>
-                <div class="channel-item" id="btn-channel-voice">
-                    <i class="fa-solid fa-volume-high channel-icon"></i>
-                    <span>روم_المايك</span>
-                </div>
-                
-                <div class="voice-users-list" id="voice-users-container"></div>
-            </div>
-
-            <div class="channels-category"><span>عقد الصداقة للابد 👥</span></div>
-            <div class="friends-permanent-list" id="friends-list-container" style="padding: 4px 8px; display: flex; flex-direction: column; gap: 4px;">
-                </div>
-
-            <div class="voice-panel">
-                <div class="voice-main-controls">
-                    <div class="status-container">
-                        <div class="status-dot" id="status-led"></div>
-                        <span id="status">خارج الروم</span>
-                    </div>
-                    
-                    <div class="my-id-section">
-                        <label>الكود الثابت ديالك:</label>
-                        <div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div>
-                    </div>
-
-                    <div id="add-friend-zone" style="display: flex; flex-direction: column; gap: 4px;">
-                        <input type="text" id="peer-id-input" placeholder="حط كود صاحبك الجديد هنا...">
-                        <input type="text" id="friend-name-input" placeholder="سمية صاحبك...">
-                        <button id="call-btn" style="background-color: #5865f2; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer;">عقد الصداقة وبدء الروم</button>
-                    </div>
-                    
-                    <button id="hangup-btn" class="hidden-btn" style="background-color: #f23f43; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%;">مغادرة الروم الصوتي</button>
-                </div>
-
-                <div class="voice-buttons-sidebar">
-                    <button id="mute-btn" class="unmuted" title="كتم المايك"><i id="mute-icon" class="fa-solid fa-microphone"></i></button>
-                    <button id="deafen-btn" class="undeafened" title="كتم السمع"><i id="deafen-icon" class="fa-solid fa-headphones"></i></button>
-                </div>
-            </div>
-        </div>
-        <!-- 3. منطقة الشات الكتابي -->
-        <div class="chat-container" id="text-chat-view">
-            <div class="chat-header">
-                <i class="fa-solid fa-hashtag header-icon"></i>
-                <span class="header-title">عام</span>
-                <div class="header-divider"></div>
-                <span class="header-desc">مرحباً بك في الشات الكتابي العام</span>
-            </div>
-            
-            <div class="messages-view" id="chat-box"></div>
-
-            <div class="chat-input-wrapper">
-                <div class="input-container">
-                    <i class="fa-solid fa-circle-plus input-icon-plus"></i>
-                    <input type="text" id="message-input" placeholder="اكتب رسالة في #عام...">
-                </div>
-                <button id="send-btn">إرسال</button>
-            </div>
-        </div>
-
-        <!-- 4. منطقة الروم الصوتي (المربعات الكبار المحدثة) -->
-        <div class="chat-container" id="voice-room-view" style="display: none;">
-            <div class="chat-header">
-                <i class="fa-solid fa-volume-high header-icon"></i>
-                <span class="header-title">روم_المايك</span>
-                <div class="header-divider"></div>
-                <span class="header-desc">المتحدثون ف الروم الحالي</span>
-            </div>
-            
-            <!-- شبكة المربعات الكبار (Voice Grid) -->
-            <div class="voice-grid-container" id="voice-grid">
-                <!-- المربعات غاتقاد وتتحذف هنا تلقائياً بالجافا سكريبت -->
-            </div>
-        </div>
-
-    </div>
-
-    <audio id="remote-audio" autoplay></audio>
-    <script src="script.js"></script>
-</body>
-<div class="chat-container">
         <div class="channels-sidebar" id="sidebar">
             <div class="server-name">
                 <span>سيرفر الأصدقاء ✨</span>
@@ -137,113 +43,78 @@
             </div>
 
             <div class="channels-category"><span>عقد الصداقة للابد 👥</span></div>
-            <div class="friends-permanent-list" id="friends-list-container" style="padding: 4px 8px; display: flex; flex-direction: column; gap: 4px;"></div>
+            <div class="friends-permanent-list" id="friends-list-container"></div>
 
             <div class="voice-panel">
                 <div class="voice-main-controls">
-                    <div class="status-container"><div class="status-dot" id="status-led"></div><span id="status">خارج الروم</span></div>
-                    <div class="my-id-section"><label>الكود الثابت ديالك:</label><div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div></div>
-                    <div id="add-friend-zone" style="display: flex; flex-direction: column; gap: 4px;">
-                        <input type="text" id="peer-id-input" placeholder="حط كود صاحبك الجديد هنا...">
-                        <input type="text" id="friend-name-input" placeholder="سمية صاحبك...">
-                        <button id="call-btn" style="background-color: #5865f2; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer;">عقد الصداقة وبدء الروم</button>
+                    <div class="status-container">
+                        <div class="status-dot" id="status-led"></div>
+                        <span id="status">خارج الروم</span>
                     </div>
-                    <button id="hangup-btn" class="hidden-btn" style="background-color: #f23f43; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%;">مغادرة الروم الصوتي</button>
+                    
+                    <div class="my-id-section">
+                        <label>كود الاتصال الحالي:</label>
+                        <div id="my-id" class="id-badge" title="اضغط للنسخ السريع">جاري جلب الكود...</div>
+                    </div>
+
+                    <div id="add-friend-zone" class="add-friend-inputs">
+                        <input type="text" id="peer-id-input" placeholder="حط كود صاحبك الجديد هنا...">
+                        <input type="text" id="friend-name-input" placeholder="سمية صاحبك الجديد...">
+                        <button id="call-btn" class="btn-primary">عقد الصداقة وبدء الروم</button>
+                    </div>
+                    
+                    <button id="hangup-btn" class="btn-danger hidden-element">مغادرة الروم الصوتي</button>
                 </div>
+
                 <div class="voice-buttons-sidebar">
-                    <button id="mute-btn" class="unmuted"><i id="mute-icon" class="fa-solid fa-microphone"></i></button>
-                    <button id="deafen-btn" class="undeafened"><i id="deafen-icon" class="fa-solid fa-headphones"></i></button>
+                    <button id="mute-btn" class="unmuted" title="كتم المايك"><i id="mute-icon" class="fa-solid fa-microphone"></i></button>
+                    <button id="deafen-btn" class="undeafened" title="كتم السمع"><i id="deafen-icon" class="fa-solid fa-headphones"></i></button>
                 </div>
             </div>
         </div>
 
         <div class="main-content">
+            
             <div class="top-bar">
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="top-bar-left">
                     <i class="fa-solid fa-bars menu-hamburger-btn" id="open-sidebar-btn"></i>
-                    <i class="fa-solid fa-hashtag"></i>
+                    <i class="fa-solid fa-hashtag header-hashtag"></i>
                     <span id="current-channel-title">عام</span>
+                </div>
+                
+                <div class="top-bar-right">
+                    <div id="user-profile-card" class="profile-card" title="كليكي هنا لنسخ كودك السري">
+                        <span id="user-display-top" class="profile-name">👤 جاري التحميل...</span>
+                        <span id="user-code-top" class="profile-code">🔑 الكود: جاري الجلب...</span>
+                    </div>
+                    
+                    <button id="switch-account-btn" class="btn-secondary">
+                        <i class="fa-solid fa-rotate"></i> تبديل الحساب
+                    </button>
                 </div>
             </div>
 
-            ```
+            <div class="chat-container" id="text-chat-view">
+                <div class="messages-view" id="chat-box"></div>
 
----
+                <div class="chat-input-wrapper">
+                    <div class="input-container">
+                        <i class="fa-solid fa-circle-plus input-icon-plus"></i>
+                        <input type="text" id="message-input" placeholder="اكتب رسالة في #عام...">
+                    </div>
+                    <button id="send-btn" class="btn-send">إرسال</button>
+                </div>
+            </div>
 
-### 2️⃣ التعديل على الـ CSS (`style.css`)
-هنا فين كاينة المعجزة! غادي نزيدو أسطر ذكية (`@media`) كتقول للمتصفح: *"إلا كانت الشاشة صغيرة (بحال التلفون)، خبّي السايدبار ورجع كولشي بالطول"*.
+            <div class="chat-container hidden-element" id="voice-room-view">
+                <div class="voice-grid-container" id="voice-grid"></div>
+            </div>
 
-زيد هاد الأسطر ف **آخر ملف** `style.css`:
+        </div>
 
-```css
-/* =======================================================
-   📱 إعدادات التجاوب مع الهواتف الذكية (Responsive Design)
-======================================================= */
+    </div>
 
-/* ف البداية، أزرار المنيو مخفية ف البيسي */
-.menu-hamburger-btn {
-    display: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #dbdee1;
-}
-.close-menu-btn {
-    display: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #dbdee1;
-}
-
-/* فاش كتكون الشاشة أصغر من 768 بكسل (يعني تليفون أو طابليط) */
-@media (max-width: 768px) {
-    .chat-container {
-        flex-direction: column; /* رجع العناصر عمودية */
-        position: relative;
-    }
-
-    /* زر المنيو يظهر ف التلفون */
-    .menu-hamburger-btn {
-        display: block;
-    }
-    .close-menu-btn {
-        display: block;
-    }
-
-    /* تحويل بار القنوات لـ قائمة منزلقة (Drawer Menu) */
-    .channels-sidebar {
-        position: absolute;
-        top: 0;
-        left: -100%; /* مخفي خارج الشاشة على اليسار */
-        width: 280px;
-        height: 100%;
-        z-index: 999;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-        transition: left 0.3s ease; /* أنيمايشن الدخول */
-    }
-
-    /* فاش تبرك على المنيو، هاد الكلاس غايتزاد بالجاوا سكريبت باش يبان */
-    .channels-sidebar.active-menu {
-        left: 0; /* كيدخل للرؤية */
-    }
-
-    /* تعديل مربعات الصوت الكبيرة ف التلفون باش ما تخرجش على الشاشة */
-    .voice-grid {
-        grid-template-columns: 1fr; /* مربع واحد ف السطر ف التلفون */
-        gap: 10px;
-        padding: 10px;
-    }
-
-    .voice-card {
-        height: 150px; /* تصغير الطول ف التلفون */
-    }
-
-    /* تعديل خانة الكتابة ف التلفون باش تجي مريحة */
-    .chat-input-area {
-        padding: 10px;
-    }
-    
-    .chat-input-area input {
-        padding: 12px; /* تكبير الخانة باش تسهل الكتابة بالصبع */
-    }
-}
+    <audio id="remote-audio" autoplay></audio>
+    <script src="script.js"></script>
+</body>
 </html>

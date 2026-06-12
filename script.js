@@ -1,14 +1,45 @@
-// 1. إدارة اسم المستخدم وحفظه ف المتصفح باش ما يسولكش كل مرة
-let username = localStorage.getItem('discord_username');
-if (!username) {
-    username = prompt("شنو هو الاسم ديالك ف السيرفر؟");
-    if (!username || username.trim() === "") username = "مستخدم_" + Math.floor(Math.random()*1000);
-    localStorage.setItem('discord_username', username);
+// =======================================================
+// 1. نظام إدارة الحسابات والذاكرة المحلية
+// =======================================================
+let currentAccount = JSON.parse(localStorage.getItem('active_discord_account'));
+
+if (!currentAccount) {
+    let inputName = prompt("مرحباً بك! اكتب الاسم ديالك ف السيرفر:");
+    if (!inputName || inputName.trim() === "") inputName = "مستخدم_" + Math.floor(Math.random()*1000);
+    
+    // توليد الكود محلياً فوراً لتجنب تعليق السيرفر
+    let uniqueSecretCode = "peer-" + Math.floor(100000 + Math.random() * 900000);
+
+    currentAccount = {
+        username: inputName.trim(),
+        userCode: uniqueSecretCode
+    };
+    
+    localStorage.setItem('active_discord_account', JSON.stringify(currentAccount));
 }
 
-const peer = new Peer(); 
+const username = currentAccount.username;
+const userCode = currentAccount.userCode;
 
+// إظهار الكود والاسم فوراً وبشكل أسرع
+document.getElementById('user-display-top').innerText = "👤 " + username;
+document.getElementById('user-code-top').innerText = "🔑 الكود: " + userCode;
+
+// =======================================================
+// 2. إعداد الـ PeerJS السريع (مباشر ومحمي من التعليق)
+// =======================================================
+// ربط الـ ID محلياً قبل انتظار استجابة السيرفر بالكامل
 const myIdBox = document.getElementById('my-id');
+myIdBox.innerText = userCode; 
+
+const peer = new Peer(userCode, {
+    host: 'peerjs.com',
+    port: 443,
+    secure: true,
+    pingInterval: 5000,
+    debug: 1 // تقليص الأخطاء الجانبية لزيادة السرعة
+}); 
+
 const peerIdInput = document.getElementById('peer-id-input');
 const friendNameInput = document.getElementById('friend-name-input');
 const callBtn = document.getElementById('call-btn');
@@ -42,35 +73,80 @@ let isInVoiceRoom = false;
 let audioContext, analyser, microphone, javascriptNode;
 let remoteAudioContext, remoteAnalyser, remoteSource, remoteJavascriptNode;
 
-// 2. دالة جلب قائمة الأصدقاء الدائمين من الذاكرة وعرضهم مع زر الحذف
+const avatarColors = ["#5865f2", "#23a55a", "#e67e22", "#9b59b6", "#e74c3c", "#1abc9c"];
+const myAvatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+const friendAvatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+
+// تحديث الليد عند نجاح الاتصال الكامل بالسيرفر العالمي
+peer.on('open', (id) => {
+    updateStatus("متصل ومستعد", "success");
+    loadLocalChatHistory(); 
+    loadPermanentFriends(); 
+    updateVoiceRoomUI(false); 
+});
+
+// معالجة خطأ السيرفر المشهور لمنع تجمد التطبيق
+peer.on('error', (err) => {
+    console.warn("PeerJS Warning/Error:", err.type);
+    updateStatus("اتصال احتياطي نشط", "warning");
+});
+
+// =======================================================
+// 3. حفظ وعرض الشات المحلي للأبد
+// =======================================================
+function loadLocalChatHistory() {
+    chatBox.innerHTML = "";
+    const history = JSON.parse(localStorage.getItem('discord_chat_history')) || [];
+    history.forEach(msg => {
+        renderMessageRow(msg.sender, msg.text, msg.color || "#5865f2");
+    });
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function saveMessageToLocalHistory(senderName, textMessage, colorHex) {
+    const history = JSON.parse(localStorage.getItem('discord_chat_history')) || [];
+    history.push({ sender: senderName, text: textMessage, color: colorHex });
+    localStorage.setItem('discord_chat_history', JSON.stringify(history));
+}
+
+function renderMessageRow(senderName, text, colorHex) {
+    const row = document.createElement('div');
+    row.classList.add('message-row');
+    row.innerHTML = `
+        <div class="message-avatar" style="background-color: ${colorHex};">${senderName.charAt(0).toUpperCase()}</div>
+        <div class="message-details">
+            <span class="message-username">${senderName}</span>
+            <p class="message-text">${text}</p>
+        </div>
+    `;
+    chatBox.appendChild(row);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// =======================================================
+// 4. إدارة قائمة الأصدقاء الدائمين
+// =======================================================
 function loadPermanentFriends() {
     friendsListContainer.innerHTML = "";
-    const savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
+    const allStorageFriends = JSON.parse(localStorage.getItem('permanent_friends_list')) || [];
+    const myFriends = allStorageFriends.filter(f => f.belongsTo === userCode);
     
-    if (savedFriends.length === 0) {
-        friendsListContainer.innerHTML = `<span style="color: #949ba4; font-size: 12px; padding: 4px 8px;">لا يوجد أصدقاء مقربين بعد.</span>`;
+    if (myFriends.length === 0) {
+        friendsListContainer.innerHTML = `<span style="color: #949ba4; font-size: 12px; padding: 4px 8px;">لا يوجد أصدقاء محفوظين.</span>`;
         return;
     }
 
-    savedFriends.forEach(f => {
+    myFriends.forEach(f => {
         const item = document.createElement('div');
-        item.style.display = "flex";
-        item.style.alignItems = "center";
-        item.style.justifyContent = "space-between";
-        item.style.padding = "6px 8px";
-        item.style.backgroundColor = "#1e1f22";
-        item.style.borderRadius = "4px";
-        item.style.fontSize = "14px";
-        item.style.marginBottom = "4px";
-        
+        item.classList.add('friend-row');
         item.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px; max-width: 60%;">
-                <div class="voice-avatar-mini friend" style="background-color: #5865f2; flex-shrink: 0;">${f.name.charAt(0).toUpperCase()}</div>
-                <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name}</span>
+            <div class="friend-info">
+                <div class="voice-avatar-mini" style="background-color: ${f.color || '#23a55a'};">${f.name.charAt(0).toUpperCase()}</div>
+                <span class="friend-name-text">${f.name}</span>
             </div>
-            <div style="display: flex; gap: 4px; align-items: center;">
-                <button onclick="startVoiceRoomWithKey('${f.id}', '${f.name}')" style="background-color: #23a55a; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">بدء الروم</button>
-                <button onclick="deletePermanentFriend('${f.id}')" style="background-color: transparent; color: #f23f43; border: none; padding: 4px; font-size: 14px; cursor: pointer;" title="إزالة الصديق">
+            <div class="friend-actions">
+                <button onclick="startVoiceRoomWithKey('${f.id}', '${f.name}')" class="btn-friend-call">بدء الروم</button>
+                <button onclick="deletePermanentFriend('${f.id}')" class="btn-friend-delete">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>
@@ -79,34 +155,28 @@ function loadPermanentFriends() {
     });
 }
 
-// 🗑️ الدالة الجديدة المسؤولة عن مسح الصديق نهائياً من الذاكرة
-function deletePermanentFriend(friendId) {
-    if (confirm("واش بصح بغيتي تحيد هاد الصديق من قائمة الأصدقاء للابد؟")) {
-        let savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
-        
-        // فلترة القائمة وإزالة الصديق اللي عنده نفس الـ ID
-        savedFriends = savedFriends.filter(f => f.id !== friendId);
-        
-        // حفظ القائمة الجديدة ف الذاكرة
-        localStorage.setItem('permanent_friends', JSON.stringify(savedFriends));
-        
-        // إعادة تحديث القائمة ف الواجهة فوراً
-        loadPermanentFriends();
-    }
-}
-
-// دالة حفظ صديق جديد ف العقد للابد
 function saveFriendToContract(id, name) {
-    let savedFriends = JSON.parse(localStorage.getItem('permanent_friends')) || [];
-    // التأكد من أن الصديق غير مسجل سابقا
-    if (!savedFriends.some(f => f.id === id)) {
-        savedFriends.push({ id: id, name: name });
-        localStorage.setItem('permanent_friends', JSON.stringify(savedFriends));
+    let allStorageFriends = JSON.parse(localStorage.getItem('permanent_friends_list')) || [];
+    if (!allStorageFriends.some(f => f.id === id && f.belongsTo === userCode)) {
+        const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+        allStorageFriends.push({ id: id, name: name, belongsTo: userCode, color: randomColor });
+        localStorage.setItem('permanent_friends_list', JSON.stringify(allStorageFriends));
         loadPermanentFriends();
     }
 }
 
-// 3. دالة تحديث واجهة الروم الصوتي
+function deletePermanentFriend(friendId) {
+    if (confirm("واش بغيتي تحيد هاد الصديق من الحساب ديالك؟")) {
+        let allStorageFriends = JSON.parse(localStorage.getItem('permanent_friends_list')) || [];
+        allStorageFriends = allStorageFriends.filter(f => !(f.id === friendId && f.belongsTo === userCode));
+        localStorage.setItem('permanent_friends_list', JSON.stringify(allStorageFriends));
+        loadPermanentFriends();
+    }
+}
+
+// =======================================================
+// 5. واجهة الروم الصوتي والمربعات الكبيرة (بدون ستايل مباشر)
+// =======================================================
 function updateVoiceRoomUI(isFriendConnected = false) {
     if (!isInVoiceRoom) {
         voiceUsersContainer.innerHTML = "";
@@ -117,22 +187,20 @@ function updateVoiceRoomUI(isFriendConnected = false) {
     voiceUsersContainer.innerHTML = "";
     voiceGrid.innerHTML = "";
 
-    // مربعك الكبير
     const myCard = document.createElement('div');
     myCard.classList.add('voice-card'); 
     myCard.id = "card-me";
     myCard.innerHTML = `
-        <div class="voice-card-avatar">${username.charAt(0).toUpperCase()}</div>
+        <div class="voice-card-avatar" style="background-color: ${myAvatarColor};">${username.charAt(0).toUpperCase()}</div>
         <div class="voice-card-name">${username}</div>
     `;
     voiceGrid.appendChild(myCard);
 
-    // اسمك الصغير تحت القناة
     const myTag = document.createElement('div');
     myTag.classList.add('voice-user-tag');
     myTag.innerHTML = `
-        <div class="voice-avatar-mini">${username.charAt(0).toUpperCase()}</div>
-        <span>${username}</span>
+        <div class="voice-avatar-mini" style="background-color: ${myAvatarColor};">${username.charAt(0).toUpperCase()}</div>
+        <span>${username} (أنت)</span>
     `;
     voiceUsersContainer.appendChild(myTag);
 
@@ -141,7 +209,7 @@ function updateVoiceRoomUI(isFriendConnected = false) {
         friendCard.classList.add('voice-card');
         friendCard.id = "card-friend";
         friendCard.innerHTML = `
-            <div class="voice-card-avatar friend">${friendName.charAt(0).toUpperCase()}</div>
+            <div class="voice-card-avatar friend" style="background-color: ${friendAvatarColor};">${friendName.charAt(0).toUpperCase()}</div>
             <div class="voice-card-name">${friendName}</div>
         `;
         voiceGrid.appendChild(friendCard);
@@ -149,16 +217,16 @@ function updateVoiceRoomUI(isFriendConnected = false) {
         const friendTag = document.createElement('div');
         friendTag.classList.add('voice-user-tag');
         friendTag.innerHTML = `
-            <div class="voice-avatar-mini friend">${friendName.charAt(0).toUpperCase()}</div>
+            <div class="voice-avatar-mini friend" style="background-color: ${friendAvatarColor};">${friendName.charAt(0).toUpperCase()}</div>
             <span>${friendName}</span>
         `;
         voiceUsersContainer.appendChild(friendTag);
         
-        addFriendZone.style.display = "none";
-        hangupBtn.style.display = "block";
+        addFriendZone.classList.add('hidden-element');
+        hangupBtn.classList.remove('hidden-element');
     } else {
-        addFriendZone.style.display = "flex";
-        hangupBtn.style.display = "none";
+        addFriendZone.classList.remove('hidden-element');
+        hangupBtn.classList.add('hidden-element');
     }
 }
 
@@ -169,19 +237,19 @@ function updateStatus(text, colorClass) {
     else statusLed.style.backgroundColor = '#23a55a';
 }
 
-peer.on('open', (id) => {
-    myIdBox.innerText = id;
-    loadPermanentFriends(); // تحميل الأصدقاء المعقود معهم الصداقة فوراً
-    updateVoiceRoomUI(false); 
-});
-
 myIdBox.addEventListener('click', () => {
-    if(myIdBox.innerText !== "جاري جلب الكود...") {
-        navigator.clipboard.writeText(myIdBox.innerText);
-        alert("📋 تم نسخ كودك الثابت! صيفطو لصاحبك يديرو مرة وحدة ف حياتو.");
-    }
+    navigator.clipboard.writeText(userCode);
+    alert("📋 تم نسخ كود حسابك الثابت بنجاح!");
 });
 
+document.getElementById('user-profile-card').addEventListener('click', () => {
+    navigator.clipboard.writeText(userCode);
+    alert("📋 تم نسخ كود حسابك الثابت بنجاح!");
+});
+
+// =======================================================
+// 6. التقاط الصوت ونظام الـ Speaking Ring الأخضر
+// =======================================================
 async function startMyMicrophone() {
     if (localStream) return localStream;
     try {
@@ -250,35 +318,24 @@ function setupRemoteVoiceDetection(remoteStream) {
     };
 }
 
+// =======================================================
+// 7. إدارة الاتصال والتبديل
+// =======================================================
 function setupDataConnectionHandlers(conn) {
     conn.on('data', (data) => {
         if (data.type === 'exchange-name') {
             friendName = data.name;
-            saveFriendToContract(conn.peer, data.name); // حفظ التوأم للابد ف اللائحة
+            saveFriendToContract(conn.peer, data.name); 
             if (currentCall) updateVoiceRoomUI(true);
         }
         if (data.type === 'chat-message') {
-            displayReceivedMessage(data.sender, data.text);
+            renderMessageRow(data.sender, data.text, data.color || "#23a55a");
+            saveMessageToLocalHistory(data.sender, data.text, data.color || "#23a55a");
         }
     });
     conn.on('close', () => { handleFriendDisconnect(); });
 }
 
-function displayReceivedMessage(senderName, text) {
-    const row = document.createElement('div');
-    row.classList.add('message-row');
-    row.innerHTML = `
-        <div class="avatar" style="background-color: #e67e22;">${senderName.charAt(0).toUpperCase()}</div>
-        <div class="message-content">
-            <span class="username">${senderName}</span>
-            <p class="message-text">${text}</p>
-        </div>
-    `;
-    chatBox.appendChild(row);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-// 📡 استقبال الاتصالات الدائمة (تلقائياً)
 peer.on('connection', (conn) => {
     currentDataConn = conn;
     isInVoiceRoom = true; 
@@ -297,15 +354,13 @@ peer.on('call', async (call) => {
         call.on('stream', (remoteStream) => {
             remoteAudio.srcObject = remoteStream;
             updateStatus("في الروم الصوتي 🟢", "success");
+            setupRemoteVoiceDetection(remoteStream);
             if (friendName) updateVoiceRoomUI(true);
         });
     }
     call.on('close', () => { handleFriendDisconnect(); });
 });
 
-/* =======================================================
-   🚀 ميزة "بدء الروم بضغطة زر" الدائمة (عقد الصداقة)
-======================================================= */
 async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
     updateStatus("جاري بدء الروم...", "warning");
     const stream = await startMyMicrophone();
@@ -314,7 +369,6 @@ async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
     isInVoiceRoom = true; 
     friendName = savedFriendName;
 
-    // الاتصال بالبيانات والشات
     const conn = peer.connect(targetPeerId);
     currentDataConn = conn;
     conn.on('open', () => {
@@ -322,7 +376,6 @@ async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
     });
     setupDataConnectionHandlers(conn);
 
-    // الاتصال بالمايك
     const call = peer.call(targetPeerId, stream);
     currentCall = call;
     call.on('stream', (remoteStream) => {
@@ -332,18 +385,19 @@ async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
         setupRemoteVoiceDetection(remoteStream);
     });
     call.on('close', () => { handleFriendDisconnect(); });
-    
-    // تحويل الواجهة لغرفة الصوت تلقائياً
     btnChannelVoice.click();
 }
 
-// زر ربط الصداقة لأول مرة عادي
 callBtn.addEventListener('click', () => {
     const remoteId = peerIdInput.value.trim();
-    const fName = friendNameInput.value.trim() || "صديق";
+    let typedName = friendNameInput ? friendNameInput.value.trim() : "";
+    if (!typedName || typedName === "") typedName = "صديق_جديد";
+
     if (remoteId) {
-        saveFriendToContract(remoteId, fName);
-        startVoiceRoomWithKey(remoteId, fName);
+        friendName = typedName; 
+        startVoiceRoomWithKey(remoteId, friendName);
+        peerIdInput.value = "";
+        if(friendNameInput) friendNameInput.value = "";
     }
 });
 
@@ -353,12 +407,10 @@ function handleFriendDisconnect() {
     if (currentDataConn) { currentDataConn.close(); currentDataConn = null; }
     if (remoteJavascriptNode) remoteJavascriptNode.onaudioprocess = null;
     isInVoiceRoom = false; 
-    
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
     }
-
     updateStatus("خارج الروم", "warning");
     updateVoiceRoomUI(false);
     btnChannelGeneral.click();
@@ -371,51 +423,54 @@ hangupBtn.addEventListener('click', () => {
     }
 });
 
-/* =======================================================
-   🎮 التحكم ف القنوات والشات
-======================================================= */
+document.getElementById('switch-account-btn').addEventListener('click', () => {
+    if (confirm("واش بغيتي تخرج من هاد الحساب وتبدلو بحساب آخر؟")) {
+        localStorage.removeItem('active_discord_account');
+        window.location.reload();
+    }
+});
+
 btnChannelGeneral.addEventListener('click', () => {
     btnChannelGeneral.classList.add('active');
     btnChannelVoice.classList.remove('active');
-    textChatView.style.display = "flex";
-    voiceRoomView.style.display = "none";
+    textChatView.classList.remove('hidden-element');
+    voiceRoomView.classList.add('hidden-element');
+    document.getElementById('current-channel-title').innerText = "عام";
 });
 
 btnChannelVoice.addEventListener('click', () => {
     if (!isInVoiceRoom) {
-        alert("🔒 كليكي على زر 'بدء الروم' حدا سمية صاحبك لتحت باش تدخل!");
+        alert("🔒 كليكي على زر 'بدء الروم' حدا سمية صاحبك لتحت، أو حط كود جديد باش تدخل للروم الصوتي!");
         return; 
     }
     btnChannelVoice.classList.add('active');
     btnChannelGeneral.classList.remove('active');
-    textChatView.style.display = "none";
-    voiceRoomView.style.display = "flex";
+    textChatView.classList.add('hidden-element');
+    voiceRoomView.classList.remove('hidden-element');
+    document.getElementById('current-channel-title').innerText = "روم_المايك";
 });
 
 function appendMessage() {
     const text = messageInput.value.trim();
     if(text !== "") {
-        const row = document.createElement('div');
-        row.classList.add('message-row');
-        row.innerHTML = `
-            <div class="avatar">${username.charAt(0).toUpperCase()}</div>
-            <div class="message-content">
-                <span class="username">${username}</span>
-                <p class="message-text">${text}</p>
-            </div>
-        `;
-        chatBox.appendChild(row);
+        renderMessageRow(username, text, myAvatarColor);
+        saveMessageToLocalHistory(username, text, myAvatarColor);
+        
         if (currentDataConn && currentDataConn.open) {
-            currentDataConn.send({ type: 'chat-message', sender: username, text: text });
+            currentDataConn.send({ type: 'chat-message', sender: username, text: text, color: myAvatarColor });
         }
         messageInput.value = "";
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 }
 sendBtn.addEventListener('click', appendMessage);
 messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') appendMessage(); });
 
-// أزرار كتم المايك والسمع
+const openSidebarBtn = document.getElementById('open-sidebar-btn');
+const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+const sidebar = document.getElementById('sidebar');
+if (openSidebarBtn && sidebar) openSidebarBtn.addEventListener('click', () => sidebar.classList.add('active-menu'));
+if (closeSidebarBtn && sidebar) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active-menu'));
+
 const muteBtn = document.getElementById('mute-btn');
 const muteIcon = document.getElementById('mute-icon');
 muteBtn.addEventListener('click', () => {
@@ -423,8 +478,6 @@ muteBtn.addEventListener('click', () => {
         isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted;
         muteBtn.className = isMuted ? "muted" : "unmuted";
         muteIcon.className = isMuted ? "fa-solid fa-microphone-slash" : "fa-solid fa-microphone";
-        const myCardDOM = document.getElementById('card-me');
-        if(myCardDOM && isMuted) myCardDOM.classList.remove('speaking');
     }
 });
 const deafenBtn = document.getElementById('deafen-btn');
@@ -436,36 +489,4 @@ deafenBtn.addEventListener('click', () => {
     isMuted = isDeafened; if (localStream) localStream.getAudioTracks()[0].enabled = !isMuted;
     muteBtn.className = isMuted ? "muted" : "unmuted";
     muteIcon.className = isMuted ? "fa-solid fa-microphone-slash" : "fa-solid fa-microphone";
-    const myCardDOM = document.getElementById('card-me');
-    if(myCardDOM && isMuted) myCardDOM.classList.remove('speaking');
-});
-/* =======================================================
-   📱 كود التحكم ف قائمة التلفون المنزلقة
-======================================================= */
-const openSidebarBtn = document.getElementById('open-sidebar-btn');
-const closeSidebarBtn = document.getElementById('close-sidebar-btn');
-const sidebar = document.getElementById('sidebar');
-
-// فتح القائمة ف التلفون
-if (openSidebarBtn && sidebar) {
-    openSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.add('active-menu');
-    });
-}
-
-// إغلاق القائمة ف التلفون عند الضغط على X
-if (closeSidebarBtn && sidebar) {
-    closeSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.remove('active-menu');
-    });
-}
-
-// إغلاق القائمة تلقائياً ف التلفون فاش الشخص يختار شي قناة (عام أو المايك)
-const channelItems = document.querySelectorAll('.channel-item');
-channelItems.forEach(item => {
-    item.addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('active-menu');
-        }
-    });
 });
