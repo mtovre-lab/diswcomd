@@ -7,7 +7,6 @@ if (!currentAccount) {
     let inputName = prompt("مرحباً بك! اكتب الاسم ديالك ف السيرفر:");
     if (!inputName || inputName.trim() === "") inputName = "مستخدم_" + Math.floor(Math.random()*1000);
     
-    // توليد الكود محلياً فوراً لتجنب تعليق السيرفر
     let uniqueSecretCode = "peer-" + Math.floor(100000 + Math.random() * 900000);
 
     currentAccount = {
@@ -21,14 +20,12 @@ if (!currentAccount) {
 const username = currentAccount.username;
 const userCode = currentAccount.userCode;
 
-// إظهار الكود والاسم فوراً وبشكل أسرع
 document.getElementById('user-display-top').innerText = "👤 " + username;
 document.getElementById('user-code-top').innerText = "🔑 الكود: " + userCode;
 
 // =======================================================
-// 2. إعداد الـ PeerJS السريع (مباشر ومحمي من التعليق)
+// 2. إعداد الـ PeerJS المستقر
 // =======================================================
-// ربط الـ ID محلياً قبل انتظار استجابة السيرفر بالكامل
 const myIdBox = document.getElementById('my-id');
 myIdBox.innerText = userCode; 
 
@@ -37,7 +34,7 @@ const peer = new Peer(userCode, {
     port: 443,
     secure: true,
     pingInterval: 5000,
-    debug: 1 // تقليص الأخطاء الجانبية لزيادة السرعة
+    debug: 1 
 }); 
 
 const peerIdInput = document.getElementById('peer-id-input');
@@ -77,7 +74,6 @@ const avatarColors = ["#5865f2", "#23a55a", "#e67e22", "#9b59b6", "#e74c3c", "#1
 const myAvatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
 const friendAvatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
 
-// تحديث الليد عند نجاح الاتصال الكامل بالسيرفر العالمي
 peer.on('open', (id) => {
     updateStatus("متصل ومستعد", "success");
     loadLocalChatHistory(); 
@@ -85,14 +81,13 @@ peer.on('open', (id) => {
     updateVoiceRoomUI(false); 
 });
 
-// معالجة خطأ السيرفر المشهور لمنع تجمد التطبيق
 peer.on('error', (err) => {
-    console.warn("PeerJS Warning/Error:", err.type);
-    updateStatus("اتصال احتياطي نشط", "warning");
+    console.warn("PeerJS Error:", err.type);
+    updateStatus("خطأ في الاتصال بالصديق", "error");
 });
 
 // =======================================================
-// 3. حفظ وعرض الشات المحلي للأبد
+// 3. نظام حفظ وعرض الشات الكتابي محلياً
 // =======================================================
 function loadLocalChatHistory() {
     chatBox.innerHTML = "";
@@ -124,7 +119,7 @@ function renderMessageRow(senderName, text, colorHex) {
 }
 
 // =======================================================
-// 4. إدارة قائمة الأصدقاء الدائمين
+// 4. نظام حفظ الأصدقاء الفوري (عقد الصداقة المصلح 100%)
 // =======================================================
 function loadPermanentFriends() {
     friendsListContainer.innerHTML = "";
@@ -157,6 +152,7 @@ function loadPermanentFriends() {
 
 function saveFriendToContract(id, name) {
     let allStorageFriends = JSON.parse(localStorage.getItem('permanent_friends_list')) || [];
+    // التحقق واش كاين ديجا باش مانعاودوهش
     if (!allStorageFriends.some(f => f.id === id && f.belongsTo === userCode)) {
         const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
         allStorageFriends.push({ id: id, name: name, belongsTo: userCode, color: randomColor });
@@ -174,8 +170,31 @@ function deletePermanentFriend(friendId) {
     }
 }
 
+// زر الإضافة الفوري المصلح (يحفظ أولاً ثم يتصل)
+callBtn.addEventListener('click', () => {
+    const remoteId = peerIdInput.value.trim();
+    let typedName = friendNameInput ? friendNameInput.value.trim() : "";
+    
+    if (!remoteId) {
+        alert("🚨 عفاك حط كود صاحبك هو الأول!");
+        return;
+    }
+    if (!typedName || typedName === "") typedName = "صديق_جديد";
+
+    // خطوة 1: الحفظ فوري ومضمون ف الذاكرة المحلية
+    saveFriendToContract(remoteId, typedName);
+    
+    // خطوة 2: محاولة بدء الروم مباشرة تلقائياً
+    friendName = typedName; 
+    startVoiceRoomWithKey(remoteId, friendName);
+
+    // تفريغ الخانات
+    peerIdInput.value = "";
+    if(friendNameInput) friendNameInput.value = "";
+});
+
 // =======================================================
-// 5. واجهة الروم الصوتي والمربعات الكبيرة (بدون ستايل مباشر)
+// 5. واجهة الروم الصوتي والمربعات الكبيرة
 // =======================================================
 function updateVoiceRoomUI(isFriendConnected = false) {
     if (!isInVoiceRoom) {
@@ -248,7 +267,7 @@ document.getElementById('user-profile-card').addEventListener('click', () => {
 });
 
 // =======================================================
-// 6. التقاط الصوت ونظام الـ Speaking Ring الأخضر
+// 6. تشغيل المايك ونظام الـ Speaking Ring
 // =======================================================
 async function startMyMicrophone() {
     if (localStream) return localStream;
@@ -319,7 +338,7 @@ function setupRemoteVoiceDetection(remoteStream) {
 }
 
 // =======================================================
-// 7. إدارة الاتصال والتبديل
+// 7. إدارة الاتصال الصوتي والكتابي المباشر
 // =======================================================
 function setupDataConnectionHandlers(conn) {
     conn.on('data', (data) => {
@@ -362,12 +381,15 @@ peer.on('call', async (call) => {
 });
 
 async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
-    updateStatus("جاري بدء الروم...", "warning");
+    updateStatus("جاري الاتصال...", "warning");
     const stream = await startMyMicrophone();
     if(!stream) return;
 
     isInVoiceRoom = true; 
     friendName = savedFriendName;
+
+    // تحديث الواجهة فوراً حتى لو كان الطرف الآخر غير متصل بالإنترنت حالياً
+    updateVoiceRoomUI(true);
 
     const conn = peer.connect(targetPeerId);
     currentDataConn = conn;
@@ -381,25 +403,11 @@ async function startVoiceRoomWithKey(targetPeerId, savedFriendName) {
     call.on('stream', (remoteStream) => {
         remoteAudio.srcObject = remoteStream;
         updateStatus("في الروم الصوتي 🟢", "success");
-        updateVoiceRoomUI(true);
         setupRemoteVoiceDetection(remoteStream);
     });
     call.on('close', () => { handleFriendDisconnect(); });
     btnChannelVoice.click();
 }
-
-callBtn.addEventListener('click', () => {
-    const remoteId = peerIdInput.value.trim();
-    let typedName = friendNameInput ? friendNameInput.value.trim() : "";
-    if (!typedName || typedName === "") typedName = "صديق_جديد";
-
-    if (remoteId) {
-        friendName = typedName; 
-        startVoiceRoomWithKey(remoteId, friendName);
-        peerIdInput.value = "";
-        if(friendNameInput) friendNameInput.value = "";
-    }
-});
 
 function handleFriendDisconnect() {
     remoteAudio.srcObject = null;
