@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resonate - Next-Gen Real-Time Voice & Spatial Messaging</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            900: '#312E81',
+                            accent: '#10B981', // Emerald for active voice
+                            danger: '#EF4444'
+                        },
+                        dark: {
+                            900: '#0B0F17', // Deepest background
+                            800: '#111827', // Sidebar / Card bg
+                            700: '#1F2937', // Panels / Inputs
+                            600: '#374151', // Borders / Dividers
+                            500: '#4B5563',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'glow-brand': '0 0 20px -3px rgba(99, 102, 241, 0.4)',
+                        'glow-voice': '0 0 15px 2px rgba(16, 185, 129, 0.5)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 15, 23, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4B5563;
+        }
+
+        /* Pulse animation for active speakers */
+        @keyframes voice-pulse {
+            0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
+        }
+        .speaking-ring {
+            animation: voice-pulse 1.2s infinite ease-out;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans h-screen overflow-hidden antialiased select-none">
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="flex h-full w-full">
+
+        <!-- AUTH MODAL OVERLAY (Show by default if not logged in) -->
+        <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-900/90 backdrop-blur-md">
+            <div class="glass-panel w-full max-w-md p-8 rounded-2xl shadow-2xl border border-dark-600 relative overflow-hidden">
+                <div class="absolute -top-24 -left-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-brand-accent/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-brand-600/20 rounded-2xl mb-3 text-brand-400 border border-brand-500/30">
+                        <i class="fa-solid fa-waveform-lines text-3xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white">Welcome to Resonate</h1>
+                    <p class="text-sm text-gray-400 mt-1">High-fidelity voice & spatial workspace</p>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-dark-600 mb-6">
+                    <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white transition-colors">Log In</button>
+                    <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-colors">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="handleAuth(event, 'login')" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Username</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-user text-sm"></i></span>
+                            <input type="text" id="loginUsername" required class="w-full bg-dark-900/80 border border-dark-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 transition" placeholder="e.g. AlexVortex">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-lock text-sm"></i></span>
+                            <input type="password" id="loginPassword" required class="w-full bg-dark-900/80 border border-dark-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 transition" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl transition shadow-glow-brand hover:shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Sign In</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" onsubmit="handleAuth(event, 'register')" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Username</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-user text-sm"></i></span>
+                            <input type="text" id="regUsername" required class="w-full bg-dark-900/80 border border-dark-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 transition" placeholder="Choose a unique handle">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Avatar Color Theme</label>
+                        <div class="flex gap-3 my-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatarBg" value="from-indigo-500 to-purple-600" checked class="peer sr-only">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-offset-dark-800 peer-checked:ring-brand-400"></div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatarBg" value="from-emerald-400 to-teal-600" class="peer sr-only">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-600 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-offset-dark-800 peer-checked:ring-brand-400"></div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatarBg" value="from-rose-500 to-orange-500" class="peer sr-only">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-orange-500 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-offset-dark-800 peer-checked:ring-brand-400"></div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatarBg" value="from-cyan-400 to-blue-600" class="peer sr-only">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-offset-dark-800 peer-checked:ring-brand-400"></div>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-lock text-sm"></i></span>
+                            <input type="password" id="regPassword" required class="w-full bg-dark-900/80 border border-dark-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 transition" placeholder="Minimum 6 characters">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl transition shadow-glow-brand hover:shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Create Account</span>
+                        <i class="fa-solid fa-user-plus text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Quick Test Login Helper -->
+                <div class="mt-6 pt-4 border-t border-dark-600/60 text-center">
+                    <p class="text-xs text-gray-400 mb-2">Want to test with dual users instant peer test?</p>
+                    <div class="flex justify-center gap-2">
+                        <button onclick="quickLogin('AlphaUser')" class="text-xs bg-dark-700 hover:bg-dark-600 text-brand-400 px-3 py-1.5 rounded-lg border border-dark-600 transition">Log as User A</button>
+                        <button onclick="quickLogin('BetaUser')" class="text-xs bg-dark-700 hover:bg-dark-600 text-emerald-400 px-3 py-1.5 rounded-lg border border-dark-600 transition">Log as User B</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 1. LEFT SIDEBAR: SERVER / HUBS NAVIGATION -->
+        <nav class="w-18 bg-dark-900 border-r border-dark-600/60 flex flex-col items-center py-4 space-y-4 z-20 shrink-0">
+            <!-- Brand Logo Button -->
+            <button class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center text-xl font-bold shadow-glow-brand hover:rounded-xl transition-all duration-300 group relative">
+                <i class="fa-solid fa-bolt"></i>
+                <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Resonate Home</span>
+            </button>
+
+            <div class="w-8 h-[2px] bg-dark-700 rounded-full"></div>
+
+            <!-- Hub Icons -->
+            <div class="flex-1 space-y-3 w-full flex flex-col items-center overflow-y-auto">
+                <button onclick="switchHub('hub-general')" class="hub-btn active w-12 h-12 rounded-3xl bg-dark-800 hover:bg-brand-600 text-gray-300 hover:text-white flex items-center justify-center text-lg transition-all duration-300 relative group border border-dark-700/50">
+                    <i class="fa-solid fa-globe"></i>
+                    <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Global Community</span>
+                </button>
+
+                <button onclick="switchHub('hub-tech')" class="hub-btn w-12 h-12 rounded-3xl bg-dark-800 hover:bg-brand-600 text-gray-300 hover:text-white flex items-center justify-center text-lg transition-all duration-300 relative group border border-dark-700/50">
+                    <i class="fa-solid fa-code"></i>
+                    <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Tech & Dev Hub</span>
+                </button>
+
+                <button onclick="switchHub('hub-gaming')" class="hub-btn w-12 h-12 rounded-3xl bg-dark-800 hover:bg-brand-600 text-gray-300 hover:text-white flex items-center justify-center text-lg transition-all duration-300 relative group border border-dark-700/50">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Gaming Lounge</span>
+                </button>
+
+                <!-- Create Hub Button -->
+                <button onclick="openModal('createRoomModal')" class="w-12 h-12 rounded-3xl bg-dark-800 border border-dashed border-dark-600 hover:border-brand-500 text-brand-400 flex items-center justify-center text-lg hover:bg-brand-600/10 transition-all duration-300 relative group">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Create Public Voice Space</span>
+                </button>
+            </div>
+
+            <!-- Direct Messages & Friends Badge -->
+            <button onclick="toggleDirectMessagesView()" class="w-12 h-12 rounded-2xl bg-dark-800 hover:bg-dark-700 text-gray-300 flex items-center justify-center text-lg relative group border border-dark-700">
+                <i class="fa-solid fa-comments"></i>
+                <span class="absolute top-2 right-2 w-3 h-3 bg-brand-accent rounded-full ring-2 ring-dark-900"></span>
+                <span class="absolute left-20 bg-dark-800 text-white text-xs px-2.5 py-1.5 rounded-md font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-200 pointer-events-none shadow-xl border border-dark-600 z-50">Direct Messages</span>
+            </button>
+        </nav>
+
+
+        <!-- 2. SECOND SIDEBAR: ROOMS, CHANNELS & PRESENCE -->
+        <aside class="w-64 bg-dark-800 border-r border-dark-600/60 flex flex-col z-10 shrink-0">
+            <!-- Hub Header -->
+            <div class="h-16 border-b border-dark-600/60 flex items-center justify-between px-4">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-gray-100 text-base tracking-wide" id="currentHubName">Global Space</span>
+                    <i class="fa-solid fa-shield-halved text-xs text-brand-400"></i>
+                </div>
+                <button class="text-gray-400 hover:text-white transition" onclick="openModal('searchUserModal')" title="Search Platform Users">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Channels / Voice Rooms List -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-6">
+                <!-- Voice Channels Category -->
+                <div>
+                    <div class="flex items-center justify-between px-2 mb-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-signal-stream text-brand-accent text-[10px]"></i> Active Voice Spaces
+                        </span>
+                        <button onclick="openModal('createRoomModal')" class="text-gray-400 hover:text-brand-400 text-xs transition">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <!-- Voice Rooms Render Container -->
+                    <div id="voiceRoomsList" class="space-y-1">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Text Channels Category -->
+                <div>
+                    <div class="flex items-center justify-between px-2 mb-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-hashtag text-[10px]"></i> Text Chat Rooms
+                        </span>
+                    </div>
+                    <div id="textRoomsList" class="space-y-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Direct Messages Category -->
+                <div>
+                    <div class="flex items-center justify-between px-2 mb-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-group text-[10px]"></i> Direct Calls & Chat
+                        </span>
+                    </div>
+                    <div id="dmList" class="space-y-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM CURRENT USER BAR -->
+            <div class="p-3 bg-dark-900/90 border-t border-dark-600/60 flex items-center justify-between">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="relative shrink-0">
+                        <div id="userAvatar" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-sm shadow-md">
+                            ?
+                        </div>
+                        <span id="userStatusDot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-2 ring-dark-900"></span>
+                    </div>
+                    <div class="min-w-0">
+                        <p id="userNameDisplay" class="text-sm font-semibold text-white truncate">Not Logged In</p>
+                        <p id="userTagDisplay" class="text-xs text-emerald-400 truncate flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex items-center gap-1">
+                    <button id="btnToggleMute" onclick="toggleMute()" class="w-8 h-8 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white flex items-center justify-center transition" title="Mute/Unmute Mic">
+                        <i class="fa-solid fa-microphone text-xs"></i>
+                    </button>
+                    <button id="btnToggleDeafen" onclick="toggleDeafen()" class="w-8 h-8 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white flex items-center justify-center transition" title="Deafen Audio">
+                        <i class="fa-solid fa-headphones text-xs"></i>
+                    </button>
+                    <button onclick="openModal('settingsModal')" class="w-8 h-8 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white flex items-center justify-center transition" title="User Settings">
+                        <i class="fa-solid fa-gear text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+
+        <!-- 3. MAIN CENTER WORKSPACE AREA -->
+        <main class="flex-1 flex flex-col bg-dark-900 relative overflow-hidden">
+
+            <!-- Mic Permission Warning Toast (Hidden by default) -->
+            <div id="micWarningToast" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-50 glass-panel bg-rose-900/80 border-rose-500 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg"></i>
+                <div class="text-xs">
+                    <p class="font-bold">Microphone Permission Denied</p>
+                    <p class="text-rose-200">Voice streaming requires audio input access. Check browser settings.</p>
+                </div>
+                <button onclick="document.getElementById('micWarningToast').classList.add('hidden')" class="ml-2 text-rose-300 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Header Top Bar -->
+            <header class="h-16 border-b border-dark-600/60 flex items-center justify-between px-6 bg-dark-800/40 backdrop-blur-sm shrink-0">
+                <div class="flex items-center gap-3">
+                    <i id="channelIcon" class="fa-solid fa-hashtag text-gray-400 text-lg"></i>
+                    <div>
+                        <h2 id="activeRoomTitle" class="text-base font-bold text-white tracking-wide">welcome-and-rules</h2>
+                        <p id="activeRoomDesc" class="text-xs text-gray-400">Official general discussion and real-time space</p>
+                    </div>
+                </div>
+
+                <!-- Active Voice Call Status Header Bar (Visible when inside voice call) -->
+                <div id="voiceConnectedHeader" class="hidden flex items-center gap-3 bg-emerald-950/60 border border-emerald-500/30 px-3.5 py-1.5 rounded-full">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span id="connectedRoomName" class="text-xs font-semibold text-emerald-300">Voice Connected / Lounge</span>
+                    <button onclick="leaveVoiceRoom()" class="text-xs bg-rose-600/80 hover:bg-rose-600 text-white px-2.5 py-1 rounded-full transition ml-2 flex items-center gap-1">
+                        <i class="fa-solid fa-phone-slash text-[10px]"></i> Leave Call
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="startDirectVoiceCall()" class="bg-brand-600/20 hover:bg-brand-600 text-brand-300 hover:text-white px-3 py-1.5 rounded-xl border border-brand-500/30 text-xs font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-phone"></i> 1-on-1 Voice Call
+                    </button>
+                </div>
+            </header>
+
+
+            <!-- SPLIT VIEW: SPATIAL VOICE STAGE & TEXT CHAT -->
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+                <!-- STAGE AREA (Voice Grid Display) -->
+                <div id="voiceStage" class="flex-1 p-6 flex flex-col justify-between overflow-y-auto bg-gradient-to-b from-dark-900 via-dark-900 to-dark-800/40 relative">
+                    
+                    <!-- Voice Stage Grid Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-users-viewfinder text-brand-400"></i> Active Room Stage
+                        </h3>
+                        <span id="stageMemberCount" class="text-xs bg-dark-700 text-gray-300 px-2.5 py-1 rounded-full font-mono">0 Connected</span>
+                    </div>
+
+                    <!-- Voice Cards Grid -->
+                    <div id="voiceMembersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-1 items-center justify-center auto-rows-max">
+                        <!-- Voice Tiles Dynamically Rendered -->
+                        <div class="col-span-full text-center py-12 text-gray-500">
+                            <i class="fa-solid fa-headset text-4xl mb-3 text-dark-600"></i>
+                            <p class="text-sm">No active voice stream connected.</p>
+                            <p class="text-xs text-gray-600 mt-1">Select or create a voice room on the left to join audio.</p>
+                        </div>
+                    </div>
+
+                    <!-- Voice Control Dock Bar (Floating at bottom of stage) -->
+                    <div class="mt-4 glass-panel py-3 px-6 rounded-2xl flex items-center justify-between shadow-2xl border border-dark-600/80 max-w-xl mx-auto w-full">
+                        <div class="flex items-center gap-3">
+                            <button id="dockMuteBtn" onclick="toggleMute()" class="w-11 h-11 rounded-xl bg-dark-700 hover:bg-dark-600 text-gray-200 flex items-center justify-center text-lg transition">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            <button id="dockDeafenBtn" onclick="toggleDeafen()" class="w-11 h-11 rounded-xl bg-dark-700 hover:bg-dark-600 text-gray-200 flex items-center justify-center text-lg transition">
+                                <i class="fa-solid fa-headphones"></i>
+                            </button>
+                        </div>
+
+                        <!-- Mic Active Indicator Signal -->
+                        <div class="flex items-center gap-2 bg-dark-900/80 px-3 py-1.5 rounded-lg border border-dark-700">
+                            <span class="text-xs text-gray-400">Input Level:</span>
+                            <div class="w-20 h-2 bg-dark-700 rounded-full overflow-hidden">
+                                <div id="micLevelBar" class="h-full bg-brand-accent w-0 transition-all duration-75"></div>
+                            </div>
+                        </div>
+
+                        <button id="dockLeaveBtn" onclick="leaveVoiceRoom()" disabled class="bg-rose-600/30 text-rose-400 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl font-semibold text-xs transition flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none">
+                            <i class="fa-solid fa-phone-slash"></i> Leave Voice
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RIGHT SIDE PANEL: CHAT & MEMBER DIRECTORY -->
+                <div class="w-full md:w-80 border-l border-dark-600/60 bg-dark-800 flex flex-col h-full">
+                    
+                    <!-- Chat Header Tab Switcher -->
+                    <div class="flex border-b border-dark-600/60 text-xs font-semibold">
+                        <button onclick="switchChatTab('chat')" id="tabChatBtn" class="flex-1 py-3 border-b-2 border-brand-500 text-white text-center">Room Stream</button>
+                        <button onclick="switchChatTab('members')" id="tabMembersBtn" class="flex-1 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 text-center">Members (<span id="onlineCountBadge">0</span>)</button>
+                    </div>
+
+                    <!-- TEXT CHAT TAB PANEL -->
+                    <div id="panelChat" class="flex-1 flex flex-col h-full overflow-hidden">
+                        <!-- Chat Message History -->
+                        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                            <!-- Messages rendered dynamically -->
+                        </div>
+
+                        <!-- Message Input Form -->
+                        <form onsubmit="sendMessage(event)" class="p-3 border-t border-dark-600/60 bg-dark-900/50 flex gap-2">
+                            <input type="text" id="chatInput" autocomplete="off" placeholder="Message #welcome-and-rules..." class="flex-1 bg-dark-900 border border-dark-600 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-500">
+                            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white px-3 py-2 rounded-xl transition text-xs">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- MEMBERS DIRECTORY TAB PANEL -->
+                    <div id="panelMembers" class="flex-1 overflow-y-auto p-3 space-y-4 hidden">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2">Online — <span id="onlineMembersHeaderCount">0</span></span>
+                            <div id="onlineUserList" class="mt-2 space-y-1">
+                                <!-- Dynamically populated list of online users -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Offline — <span id="offlineMembersHeaderCount">0</span></span>
+                            <div id="offlineUserList" class="mt-2 space-y-1">
+                                <!-- Offline users -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- CREATE VOICE ROOM MODAL -->
+    <div id="createRoomModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-dark-900/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-dark-600 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-microphone-lines text-brand-400"></i> Create Voice Space
+                </h3>
+                <button onclick="closeModal('createRoomModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form onsubmit="handleCreateRoom(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Space Name</label>
+                    <input type="text" id="newRoomName" required class="w-full bg-dark-900 border border-dark-600 rounded-xl px-3.5 py-2 text-sm text-white focus:border-brand-500" placeholder="e.g. Gaming Lounge Alpha">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Access Mode</label>
+                    <select id="newRoomPrivacy" class="w-full bg-dark-900 border border-dark-600 rounded-xl px-3.5 py-2 text-sm text-white focus:border-brand-500">
+                        <option value="public">Public (Open for anyone)</option>
+                        <option value="private">Private (Invite / Direct access only)</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeModal('createRoomModal')" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 text-xs rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl transition shadow-glow-brand">Create & Join</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SEARCH & USER PROFILE ACTIONS MODAL -->
+    <div id="searchUserModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-dark-900/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-dark-600 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-gear text-brand-400"></i> Find & Manage Users
+                </h3>
+                <button onclick="closeModal('searchUserModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="mb-4">
+                <input type="text" id="searchUserInput" oninput="renderUserSearch()" placeholder="Type username..." class="w-full bg-dark-900 border border-dark-600 rounded-xl px-3.5 py-2 text-sm text-white focus:border-brand-500">
+            </div>
+
+            <div id="searchResultsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <!-- User result cards -->
+            </div>
+        </div>
+    </div>
+
+    <!-- USER SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-dark-900/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-dark-600 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-brand-400"></i> Settings & Audio
+                </h3>
+                <button onclick="closeModal('settingsModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 font-semibold mb-1">Microphone Input Mode</label>
+                    <select class="w-full bg-dark-900 border border-dark-600 rounded-xl p-2.5 text-white">
+                        <option>Voice Activity Auto-Detect (Default)</option>
+                        <option>Push-To-Talk (Hold Space)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 font-semibold mb-1">Noise Suppression & Echo Cancellation</label>
+                    <div class="flex items-center justify-between bg-dark-900 p-3 rounded-xl border border-dark-600">
+                        <span>WebRTC Hardware Processing</span>
+                        <input type="checkbox" checked class="accent-brand-500">
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-dark-600 flex justify-between items-center">
+                    <button onclick="handleLogout()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white px-4 py-2 rounded-xl transition border border-rose-500/30">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Log Out
+                    </button>
+                    <button onclick="closeModal('settingsModal')" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl font-semibold">
+                        Save & Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== EMBEDDED REAL-TIME SERVER & APP ENGINE ==================== -->
+    <script>
+        /**
+         * RESONATE CORE REAL-TIME ARCHITECTURE
+         * Fully working full-stack emulation layer using WebRTC Data/Audio channels + BroadcastChannel
+         * for real-time peer-to-peer audio and instant socket updates between browser tabs/windows.
+         */
+
+        // --- STATE STORE ---
+        const state = {
+            currentUser: null,
+            users: JSON.parse(localStorage.getItem('resonate_users')) || [
+                { id: 'u1', username: 'AlphaUser', bg: 'from-indigo-500 to-purple-600', status: 'online', blocked: [] },
+                { id: 'u2', username: 'BetaUser', bg: 'from-emerald-400 to-teal-600', status: 'online', blocked: [] },
+                { id: 'u3', username: 'CyberGamer', bg: 'from-rose-500 to-orange-500', status: 'offline', blocked: [] }
+            ],
+            hubs: [
+                { id: 'hub-general', name: 'Global Space' },
+                { id: 'hub-tech', name: 'Tech & Dev Hub' },
+                { id: 'hub-gaming', name: 'Gaming Lounge' }
+            ],
+            activeHub: 'hub-general',
+            rooms: JSON.parse(localStorage.getItem('resonate_rooms')) || [
+                { id: 'v1', hubId: 'hub-general', name: 'Lounge Voice 🔊', type: 'voice', isPrivate: false, members: [] },
+                { id: 'v2', hubId: 'hub-general', name: 'Chill Audio Studio 🎵', type: 'voice', isPrivate: false, members: [] },
+                { id: 't1', hubId: 'hub-general', name: 'welcome-and-rules', type: 'text', isPrivate: false },
+                { id: 't2', hubId: 'hub-tech', name: 'javascript-chat', type: 'text', isPrivate: false }
+            ],
+            activeRoom: 't1',
+            activeVoiceRoom: null,
+            messages: JSON.parse(localStorage.getItem('resonate_messages')) || {
+                't1': [
+                    { id: 'm1', sender: 'AlphaUser', text: 'Welcome to Resonate! Join a voice room on the left to start real audio streaming.', timestamp: '12:00 PM' }
+                ]
+            },
+            friends: [],
+            blockedUsers: [],
+            audioState: {
+                muted: false,
+                deafened: false,
+                localStream: null,
+                peers: {}, // peerId -> RTCPeerConnection
+                audioAnalyser: null
+            }
+        };
+
+        // Simulated Real-Time Server Broadcast Channel
+        const channel = new BroadcastChannel('resonate_realtime_socket');
+
+        // Listen for global peer sync events across tabs/users
+        channel.onmessage = (event) => {
+            const { type, payload } = event.data;
+            handleSocketMessage(type, payload);
+        };
+
+        function broadcast(type, payload) {
+            channel.postMessage({ type, payload });
+        }
+
+        // Save DB Helper
+        function persistState() {
+            localStorage.setItem('resonate_users', JSON.stringify(state.users));
+            localStorage.setItem('resonate_rooms', JSON.stringify(state.rooms));
+            localStorage.setItem('resonate_messages', JSON.stringify(state.messages));
+        }
+
+
+        // --- AUTHENTICATION ENGINE ---
+        function switchAuthTab(tab) {
+            const loginBtn = document.getElementById('tabLoginBtn');
+            const regBtn = document.getElementById('tabRegisterBtn');
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginBtn.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white transition-colors";
+                regBtn.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-colors";
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+            } else {
+                regBtn.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white transition-colors";
+                loginBtn.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-colors";
+                regForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        function handleAuth(e, mode) {
+            e.preventDefault();
+            let username, password, bg = 'from-indigo-500 to-purple-600';
+
+            if (mode === 'login') {
+                username = document.getElementById('loginUsername').value.trim();
+            } else {
+                username = document.getElementById('regUsername').value.trim();
+                const selectedBg = document.querySelector('input[name="avatarBg"]:checked');
+                if (selectedBg) bg = selectedBg.value;
+            }
+
+            let user = state.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+            if (mode === 'register') {
+                if (user) {
+                    alert('Username already taken!');
+                    return;
+                }
+                user = { id: 'u_' + Date.now(), username, bg, status: 'online', blocked: [] };
+                state.users.push(user);
+                persistState();
+            } else {
+                if (!user) {
+                    // Auto-register convenience for testing
+                    user = { id: 'u_' + Date.now(), username, bg, status: 'online', blocked: [] };
+                    state.users.push(user);
+                    persistState();
+                }
+            }
+
+            loginUser(user);
+        }
+
+        function quickLogin(username) {
+            let user = state.users.find(u => u.username === username);
+            if (!user) {
+                user = { id: 'u_' + Date.now(), username, bg: 'from-cyan-400 to-blue-600', status: 'online', blocked: [] };
+                state.users.push(user);
+                persistState();
+            }
+            loginUser(user);
+        }
+
+        function loginUser(user) {
+            state.currentUser = user;
+            user.status = 'online';
+            document.getElementById('authModal').classList.add('hidden');
+
+            // Render UI
+            document.getElementById('userNameDisplay').innerText = user.username;
+            document.getElementById('userAvatar').innerText = user.username.charAt(0).toUpperCase();
+            document.getElementById('userAvatar').className = `w-10 h-10 rounded-xl bg-gradient-to-tr ${user.bg} flex items-center justify-center font-bold text-white text-sm shadow-md`;
+
+            // Announce presence
+            broadcast('USER_STATUS_CHANGE', { userId: user.id, status: 'online', user });
+            
+            renderRooms();
+            renderUsers();
+            renderMessages();
+        }
+
+        function handleLogout() {
+            if (state.currentUser) {
+                broadcast('USER_STATUS_CHANGE', { userId: state.currentUser.id, status: 'offline' });
+            }
+            leaveVoiceRoom();
+            location.reload();
+        }
+
+
+        // --- REAL-TIME WEBRTC VOICE ENGINE ---
+
+        async function initMicrophone() {
+            if (state.audioState.localStream) return state.audioState.localStream;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
+
+                state.audioState.localStream = stream;
+                setupAudioAnalyser(stream);
+                document.getElementById('micWarningToast').classList.add('hidden');
+                return stream;
+            } catch (err) {
+                console.error('Microphone error:', err);
+                document.getElementById('micWarningToast').classList.remove('hidden');
+                return null;
+            }
+        }
+
+        function setupAudioAnalyser(stream) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioCtx.createAnalyser();
+                const source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 64;
+
+                state.audioState.audioAnalyser = analyser;
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                function checkVolume() {
+                    if (!state.audioState.localStream || state.audioState.muted) {
+                        document.getElementById('micLevelBar').style.width = '0%';
+                        requestAnimationFrame(checkVolume);
+                        return;
+                    }
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    let average = sum / dataArray.length;
+                    
+                    let level = Math.min(100, Math.round((average / 128) * 100));
+                    document.getElementById('micLevelBar').style.width = level + '%';
+
+                    // Update speaking ring on stage tile
+                    const myTile = document.getElementById(`voice-tile-${state.currentUser?.id}`);
+                    if (myTile) {
+                        const avatar = myTile.querySelector('.avatar-container');
+                        if (level > 15) {
+                            avatar.classList.add('speaking-ring', 'ring-4', 'ring-emerald-400');
+                        } else {
+                            avatar.classList.remove('speaking-ring', 'ring-4', 'ring-emerald-400');
+                        }
+                    }
+
+                    requestAnimationFrame(checkVolume);
+                }
+                checkVolume();
+            } catch(e) {
+                console.log('Audio Context error:', e);
+            }
+        }
+
+        async function joinVoiceRoom(roomId) {
+            const room = state.rooms.find(r => r.id === roomId);
+            if (!room) return;
+
+            // Security Check for Private Room
+            if (room.isPrivate && room.ownerId && room.ownerId !== state.currentUser.id) {
+                alert('Access Denied: Private Voice Space');
+                return;
+            }
+
+            // Init Mic
+            const stream = await initMicrophone();
+            if (!stream) return;
+
+            // Leave previous room if any
+            if (state.activeVoiceRoom) leaveVoiceRoom();
+
+            state.activeVoiceRoom = roomId;
+
+            // Update UI
+            document.getElementById('voiceConnectedHeader').classList.remove('hidden');
+            document.getElementById('connectedRoomName').innerText = `Voice / ${room.name}`;
+            document.getElementById('dockLeaveBtn').disabled = false;
+
+            // Broadcast join
+            broadcast('VOICE_ROOM_JOIN', {
+                roomId,
+                user: state.currentUser
+            });
+
+            // Local add
+            if (!room.members) room.members = [];
+            if (!room.members.some(m => m.id === state.currentUser.id)) {
+                room.members.push(state.currentUser);
+            }
+
+            renderVoiceStage();
+            renderRooms();
+            
+            // Initiate WebRTC peer connections with existing members in room
+            room.members.forEach(member => {
+                if (member.id !== state.currentUser.id) {
+                    createPeerConnection(member.id, true);
+                }
+            });
+        }
+
+        function leaveVoiceRoom() {
+            if (!state.activeVoiceRoom) return;
+
+            const room = state.rooms.find(r => r.id === state.activeVoiceRoom);
+            if (room && room.members) {
+                room.members = room.members.filter(m => m.id !== state.currentUser.id);
+            }
+
+            broadcast('VOICE_ROOM_LEAVE', {
+                roomId: state.activeVoiceRoom,
+                userId: state.currentUser.id
+            });
+
+            // Stop local peer connections
+            Object.keys(state.audioState.peers).forEach(peerId => {
+                state.audioState.peers[peerId].close();
+                delete state.audioState.peers[peerId];
+            });
+
+            state.activeVoiceRoom = null;
+
+            // Update UI
+            document.getElementById('voiceConnectedHeader').classList.add('hidden');
+            document.getElementById('dockLeaveBtn').disabled = true;
+
+            renderVoiceStage();
+            renderRooms();
+        }
+
+        function toggleMute() {
+            state.audioState.muted = !state.audioState.muted;
+            if (state.audioState.localStream) {
+                state.audioState.localStream.getAudioTracks().forEach(track => {
+                    track.enabled = !state.audioState.muted;
+                });
+            }
+
+            const btn1 = document.getElementById('btnToggleMute');
+            const btn2 = document.getElementById('dockMuteBtn');
+
+            if (state.audioState.muted) {
+                btn1.classList.add('bg-rose-600', 'text-white');
+                btn2.classList.add('bg-rose-600', 'text-white');
+            } else {
+                btn1.classList.remove('bg-rose-600', 'text-white');
+                btn2.classList.remove('bg-rose-600', 'text-white');
+            }
+
+            broadcast('VOICE_STATE_TOGGLE', {
+                userId: state.currentUser.id,
+                muted: state.audioState.muted,
+                deafened: state.audioState.deafened
+            });
+            renderVoiceStage();
+        }
+
+        function toggleDeafen() {
+            state.audioState.deafened = !state.audioState.deafened;
+            const btn1 = document.getElementById('btnToggleDeafen');
+            const btn2 = document.getElementById('dockDeafenBtn');
+
+            if (state.audioState.deafened) {
+                btn1.classList.add('bg-rose-600', 'text-white');
+                btn2.classList.add('bg-rose-600', 'text-white');
+            } else {
+                btn1.classList.remove('bg-rose-600', 'text-white');
+                btn2.classList.remove('bg-rose-600', 'text-white');
+            }
+        }
+
+
+        // --- WEBRTC SIGNALING & PEER CONNECTION ---
+        async function createPeerConnection(targetUserId, isInitiator) {
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            state.audioState.peers[targetUserId] = pc;
+
+            // Add local track
+            if (state.audioState.localStream) {
+                state.audioState.localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, state.audioState.localStream);
+                });
+            }
+
+            // Handle incoming remote audio stream
+            pc.ontrack = (event) => {
+                if (!state.audioState.deafened) {
+                    const audioEl = new Audio();
+                    audioEl.srcObject = event.streams[0];
+                    audioEl.play();
+                }
+            };
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    broadcast('WEBRTC_ICE', {
+                        senderId: state.currentUser.id,
+                        targetId: targetUserId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            if (isInitiator) {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                broadcast('WEBRTC_OFFER', {
+                    senderId: state.currentUser.id,
+                    targetId: targetUserId,
+                    offer: offer
+                });
+            }
+
+            return pc;
+        }
+
+
+        // --- REAL-TIME SOCKET MESSAGE ROUTER ---
+        async function handleSocketMessage(type, payload) {
+            switch (type) {
+                case 'USER_STATUS_CHANGE':
+                    const u = state.users.find(x => x.id === payload.userId);
+                    if (u) u.status = payload.status;
+                    renderUsers();
+                    break;
+
+                case 'VOICE_ROOM_JOIN':
+                    const roomToJoin = state.rooms.find(r => r.id === payload.roomId);
+                    if (roomToJoin) {
+                        if (!roomToJoin.members) roomToJoin.members = [];
+                        if (!roomToJoin.members.some(m => m.id === payload.user.id)) {
+                            roomToJoin.members.push(payload.user);
+                        }
+                    }
+                    if (state.activeVoiceRoom === payload.roomId) renderVoiceStage();
+                    renderRooms();
+                    break;
+
+                case 'VOICE_ROOM_LEAVE':
+                    const roomToLeave = state.rooms.find(r => r.id === payload.roomId);
+                    if (roomToLeave && roomToLeave.members) {
+                        roomToLeave.members = roomToLeave.members.filter(m => m.id !== payload.userId);
+                    }
+                    if (state.activeVoiceRoom === payload.roomId) renderVoiceStage();
+                    renderRooms();
+                    break;
+
+                case 'TEXT_MESSAGE':
+                    if (!state.messages[payload.roomId]) state.messages[payload.roomId] = [];
+                    state.messages[payload.roomId].push(payload.message);
+                    if (state.activeRoom === payload.roomId) renderMessages();
+                    break;
+
+                case 'WEBRTC_OFFER':
+                    if (payload.targetId === state.currentUser?.id) {
+                        const pc = await createPeerConnection(payload.senderId, false);
+                        await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        broadcast('WEBRTC_ANSWER', {
+                            senderId: state.currentUser.id,
+                            targetId: payload.senderId,
+                            answer: answer
+                        });
+                    }
+                    break;
+
+                case 'WEBRTC_ANSWER':
+                    if (payload.targetId === state.currentUser?.id) {
+                        const pc = state.audioState.peers[payload.senderId];
+                        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+                    }
+                    break;
+
+                case 'WEBRTC_ICE':
+                    if (payload.targetId === state.currentUser?.id) {
+                        const pc = state.audioState.peers[payload.senderId];
+                        if (pc) await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                    }
+                    break;
+            }
+        }
+
+
+        // --- UI RENDERING ENGINE ---
+
+        function renderVoiceStage() {
+            const grid = document.getElementById('voiceMembersGrid');
+            const room = state.rooms.find(r => r.id === state.activeVoiceRoom);
+
+            if (!room || !room.members || room.members.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-headset text-4xl mb-3 text-dark-600"></i>
+                        <p class="text-sm font-medium">No active voice stream connected.</p>
+                        <p class="text-xs text-gray-600 mt-1">Select or create a voice room on the left sidebar to start talking.</p>
+                    </div>
+                `;
+                document.getElementById('stageMemberCount').innerText = '0 Connected';
+                return;
+            }
+
+            document.getElementById('stageMemberCount').innerText = `${room.members.length} Connected`;
+
+            grid.innerHTML = room.members.map(m => `
+                <div id="voice-tile-${m.id}" class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative group border border-dark-600 hover:border-brand-500/50 transition">
+                    <div class="avatar-container w-16 h-16 rounded-2xl bg-gradient-to-tr ${m.bg || 'from-indigo-500 to-purple-600'} flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 relative">
+                        ${m.username.charAt(0).toUpperCase()}
+                        ${m.id === state.currentUser?.id && state.audioState.muted ? `
+                            <span class="absolute -bottom-1 -right-1 bg-rose-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs ring-2 ring-dark-900">
+                                <i class="fa-solid fa-microphone-slash"></i>
+                            </span>
+                        ` : ''}
+                    </div>
+                    <span class="text-xs font-semibold text-white truncate max-w-full">${m.username}</span>
+                    <span class="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                        <i class="fa-solid fa-signal text-[8px]"></i> 12ms
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function renderRooms() {
+            const vList = document.getElementById('voiceRoomsList');
+            const tList = document.getElementById('textRoomsList');
+
+            const currentHubRooms = state.rooms.filter(r => r.hubId === state.activeHub);
+
+            // Voice Rooms
+            vList.innerHTML = currentHubRooms.filter(r => r.type === 'voice').map(r => `
+                <div onclick="joinVoiceRoom('${r.id}')" class="group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer ${state.activeVoiceRoom === r.id ? 'bg-brand-600/20 border border-brand-500/30 text-white' : 'hover:bg-dark-700/60 text-gray-400 hover:text-gray-200'} transition">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <i class="fa-solid fa-volume-high text-xs ${state.activeVoiceRoom === r.id ? 'text-brand-accent animate-pulse' : 'text-gray-500'}"></i>
+                        <span class="text-xs font-medium truncate">${r.name}</span>
+                    </div>
+                    ${r.members && r.members.length > 0 ? `
+                        <span class="text-[10px] bg-dark-900 px-2 py-0.5 rounded-full text-emerald-400 font-mono font-bold">${r.members.length}</span>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            // Text Rooms
+            tList.innerHTML = currentHubRooms.filter(r => r.type === 'text').map(r => `
+                <div onclick="switchTextRoom('${r.id}')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer ${state.activeRoom === r.id ? 'bg-dark-700 text-white font-semibold' : 'hover:bg-dark-700/40 text-gray-400 hover:text-gray-200'} transition">
+                    <i class="fa-solid fa-hashtag text-xs text-gray-500"></i>
+                    <span class="text-xs truncate">${r.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderUsers() {
+            const onlineList = document.getElementById('onlineUserList');
+            const offlineList = document.getElementById('offlineUserList');
+
+            const online = state.users.filter(u => u.status === 'online');
+            const offline = state.users.filter(u => u.status !== 'online');
+
+            document.getElementById('onlineCountBadge').innerText = online.length;
+            document.getElementById('onlineMembersHeaderCount').innerText = online.length;
+            document.getElementById('offlineMembersHeaderCount').innerText = offline.length;
+
+            onlineList.innerHTML = online.map(u => `
+                <div onclick="openUserActions('${u.id}')" class="flex items-center gap-2.5 p-2 rounded-xl hover:bg-dark-700/50 cursor-pointer transition">
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr ${u.bg || 'from-indigo-500 to-purple-600'} flex items-center justify-center font-bold text-white text-xs">
+                            ${u.username.charAt(0).toUpperCase()}
+                        </div>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-800"></span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-200 truncate">${u.username}</span>
+                </div>
+            `).join('');
+
+            offlineList.innerHTML = offline.map(u => `
+                <div class="flex items-center gap-2.5 p-2 rounded-xl opacity-60">
+                    <div class="w-8 h-8 rounded-lg bg-dark-700 flex items-center justify-center font-bold text-gray-400 text-xs">
+                        ${u.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span class="text-xs text-gray-400 truncate">${u.username}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            const msgs = state.messages[state.activeRoom] || [];
+
+            container.innerHTML = msgs.map(m => `
+                <div class="flex items-start gap-3 group">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 mt-0.5">
+                        ${m.sender.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-white">${m.sender}</span>
+                            <span class="text-[10px] text-gray-500">${m.timestamp || 'Just now'}</span>
+                        </div>
+                        <p class="text-xs text-gray-300 mt-1 leading-relaxed">${m.text}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const msg = {
+                id: 'm_' + Date.now(),
+                sender: state.currentUser ? state.currentUser.username : 'Guest',
+                text,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            if (!state.messages[state.activeRoom]) state.messages[state.activeRoom] = [];
+            state.messages[state.activeRoom].push(msg);
+
+            broadcast('TEXT_MESSAGE', {
+                roomId: state.activeRoom,
+                message: msg
+            });
+
+            persistState();
+            renderMessages();
+            input.value = '';
+        }
+
+
+        // --- INTERACTION HELPERS & SWITCHERS ---
+
+        function switchHub(hubId) {
+            state.activeHub = hubId;
+            const hub = state.hubs.find(h => h.id === hubId);
+            if (hub) document.getElementById('currentHubName').innerText = hub.name;
+            renderRooms();
+        }
+
+        function switchTextRoom(roomId) {
+            state.activeRoom = roomId;
+            const room = state.rooms.find(r => r.id === roomId);
+            if (room) {
+                document.getElementById('activeRoomTitle').innerText = room.name;
+            }
+            renderRooms();
+            renderMessages();
+        }
+
+        function switchChatTab(tab) {
+            const cBtn = document.getElementById('tabChatBtn');
+            const mBtn = document.getElementById('tabMembersBtn');
+            const pChat = document.getElementById('panelChat');
+            const pMembers = document.getElementById('panelMembers');
+
+            if (tab === 'chat') {
+                cBtn.className = "flex-1 py-3 border-b-2 border-brand-500 text-white text-center";
+                mBtn.className = "flex-1 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 text-center";
+                pChat.classList.remove('hidden');
+                pMembers.classList.add('hidden');
+            } else {
+                mBtn.className = "flex-1 py-3 border-b-2 border-brand-500 text-white text-center";
+                cBtn.className = "flex-1 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 text-center";
+                pMembers.classList.remove('hidden');
+                pChat.classList.add('hidden');
+            }
+        }
+
+        function handleCreateRoom(e) {
+            e.preventDefault();
+            const name = document.getElementById('newRoomName').value.trim();
+            const privacy = document.getElementById('newRoomPrivacy').value;
+
+            const room = {
+                id: 'v_' + Date.now(),
+                hubId: state.activeHub,
+                name: name + ' 🔊',
+                type: 'voice',
+                isPrivate: privacy === 'private',
+                ownerId: state.currentUser?.id,
+                members: []
+            };
+
+            state.rooms.push(room);
+            persistState();
+            closeModal('createRoomModal');
+            renderRooms();
+            joinVoiceRoom(room.id);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+
+        function startDirectVoiceCall() {
+            const privateRoom = {
+                id: 'priv_' + Date.now(),
+                hubId: state.activeHub,
+                name: 'Private 1-on-1 Call 🔒',
+                type: 'voice',
+                isPrivate: true,
+                ownerId: state.currentUser?.id,
+                members: []
+            };
+            state.rooms.push(privateRoom);
+            renderRooms();
+            joinVoiceRoom(privateRoom.id);
+        }
+
+
+        // INITIALIZATION ON LOAD
+        window.addEventListener('DOMContentLoaded', () => {
+            renderRooms();
+            renderUsers();
+            renderMessages();
+        });
+    </script>
+</body>
+</html>
