@@ -3,115 +3,909 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Clone - Voice Grid</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <title>منظم المهام اليومية الاحترافي</title>
+    <!-- مكتبة Google Sign-In الرسمية -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --pending: #94a3b8;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        /* شاشة تسجيل الدخول */
+        .auth-container {
+            text-align: center;
+            padding: 50px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-container h2 {
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .auth-container p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        /* حاوية زر جوجل الرسمي */
+        #g_id_onload {
+            margin-bottom: 20px;
+        }
+
+        /* رأس الصفحة وحساب المستخدم */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        .user-info h4 {
+            font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .user-info span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            background: #fee2e2;
+            color: var(--danger);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #fecaca;
+        }
+
+        /* تاريخ اليوم وزر اليوم */
+        .date-display-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .current-date-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .today-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .today-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* التقويم التفاعلي */
+        .calendar-section {
+            margin-bottom: 24px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-header h3 {
+            font-size: 16px;
+        }
+
+        .calendar-nav-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .calendar-nav-btns button {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .calendar-nav-btns button:hover {
+            background: var(--border);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .calendar-day-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-muted);
+            padding: 6px 0;
+        }
+
+        .calendar-day {
+            padding: 8px 4px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #fff;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover {
+            background: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .calendar-day.selected {
+            background: var(--primary) !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .calendar-day.today-marker {
+            border-color: var(--primary);
+            font-weight: bold;
+        }
+
+        .calendar-day.other-month {
+            color: #cbd5e1;
+        }
+
+        /* لوحة الإحصائيات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-card span {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .progress-bar-container {
+            background: var(--border);
+            border-radius: 99px;
+            height: 8px;
+            width: 100%;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* إضافة مهمة جديدة */
+        .task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .task-form input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .task-form input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        .task-form input[type="time"] {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* قائمة المهام */
+        .tasks-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .task-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-left: 4px;
+        }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        /* حالات المهام */
+        .task-item.completed {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: #065f46;
+        }
+
+        .task-item.overdue {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .task-item.overdue .task-title {
+            color: #991b1b;
+        }
+
+        .task-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--success);
+        }
+
+        .task-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .task-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .action-btn.edit:hover {
+            color: var(--primary);
+        }
+
+        .action-btn.delete:hover {
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 30px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .task-form {
+                flex-direction: column;
+            }
+            .container {
+                padding: 16px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <div class="discord-app">
+    <!-- شاشة تسجيل الدخول بحساب جوجل الحقيقي -->
+    <div id="authScreen" class="container auth-container">
+        <h2>مرحباً بك في منظم المهام</h2>
+        <p>الرجاء تسجيل الدخول باستخدام حساب جوجل الخاص بك للوصول إلى مهامك وإدارتها بأمان.</p>
         
-        <!-- 1. بار السيرفرات -->
-        <div class="servers-sidebar">
-            <div class="server-wrapper">
-                <div class="server-pill active-pill"></div>
-                <div class="server-icon discord-logo active"><i class="fa-brands fa-discord"></i></div>
-            </div>
-            <div class="server-separator"></div>
-            <div class="server-wrapper"><div class="server-pill"></div><div class="server-icon text-icon">D</div></div>
-            <div class="server-wrapper"><div class="server-pill"></div><div class="server-icon text-icon">FP</div></div>
-            <div class="server-icon add-server"><i class="fa-solid fa-plus"></i></div>
+        <!-- إعدادات مكون جوجل الرسمي -->
+        <div id="g_id_onload"
+             data-client_id="881347669882-vea2peibf8a0u9epbop41i3lir9ekpmg.apps.googleusercontent.com"
+             data-callback="handleGoogleSignIn"
+             data-auto_prompt="false">
         </div>
 
-        <!-- 2. بار القنوات والتحكم بالصوت -->
-        <div class="channels-sidebar">
-            <div class="server-name">
-                <span>سيرفر الأصدقاء ✨</span>
-                <i class="fa-solid fa-chevron-down"></i>
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="pill"
+             data-theme="outline"
+             data-text="sign_in_with"
+             data-size="large"
+             data-locale="ar">
+        </div>
+    </div>
+
+    <!-- التطبيق الرئيسي (مخفي حتى يتم تسجيل الدخول) -->
+    <div id="appScreen" class="container" style="display: none;">
+        
+        <!-- رأس التطبيق مع الحساب وزر الخروج -->
+        <div class="app-header">
+            <div class="user-profile">
+                <img id="userAvatar" src="" alt="صورة المستخدم" class="user-avatar">
+                <div class="user-info">
+                    <h4 id="userName">اسم المستخدم</h4>
+                    <span id="userEmail">email@gmail.com</span>
+                </div>
             </div>
-            
-            <div class="channels-category"><span>القنوات</span></div>
-            <div class="channels-list">
-                <div class="channel-item active" id="btn-channel-general">
-                    <i class="fa-solid fa-hashtag channel-icon"></i>
-                    <span>عام</span>
+            <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+        </div>
+
+        <!-- شريط تاريخ اليوم -->
+        <div class="date-display-bar">
+            <div class="current-date-text" id="todayHeaderString">...</div>
+            <button class="today-btn" onclick="goToToday()">اليوم</button>
+        </div>
+
+        <!-- التقويم التفاعلي -->
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <h3 id="calendarMonthYear">أكتوبر 2026</h3>
+                <div class="calendar-nav-btns">
+                    <button onclick="changeMonth(-1)">&#10095;</button>
+                    <button onclick="changeMonth(1)">&#10094;</button>
                 </div>
-                <div class="channel-item" id="btn-channel-voice">
-                    <i class="fa-solid fa-volume-high channel-icon"></i>
-                    <span>روم_المايك</span>
-                </div>
-                
-                <!-- قائمة الأسماء الصغيرة تحت القناة -->
-                <div class="voice-users-list" id="voice-users-container"></div>
             </div>
+            <div class="calendar-grid">
+                <div class="calendar-day-name">أحد</div>
+                <div class="calendar-day-name">إثنين</div>
+                <div class="calendar-day-name">ثلاثاء</div>
+                <div class="calendar-day-name">أربعاء</div>
+                <div class="calendar-day-name">خميس</div>
+                <div class="calendar-day-name">جمعة</div>
+                <div class="calendar-day-name">سبت</div>
+            </div>
+            <div class="calendar-grid" id="calendarDays" style="margin-top: 4px;"></div>
+        </div>
 
-            <!-- لوحة التحكم الصوتية -->
-            <div class="voice-panel">
-                <div class="voice-main-controls">
-                    <div class="status-container">
-                        <div class="status-dot" id="status-led"></div>
-                        <span id="status">جاري تشغيل النظام...</span>
-                    </div>
-                    
-                    <div class="my-id-section">
-                        <label>الكود ديالك:</label>
-                        <div id="my-id" class="id-badge" title="اضغط للنسخ">جاري جلب الكود...</div>
-                    </div>
-
-                    <input type="text" id="peer-id-input" placeholder="حط كود صاحبك هنا...">
-                    <div class="action-buttons" style="display: flex; gap: 4px; width: 100%;">
-                        <button id="call-btn" style="flex: 1;">اتصال</button>
-                        <button id="hangup-btn" class="hidden-btn" title="قطع الاتصال" style="background-color: #f23f43;"><i class="fa-solid fa-phone-slash"></i></button>
-                    </div>
-                </div>
-
-                <div class="voice-buttons-sidebar">
-                    <button id="mute-btn" class="unmuted" title="كتم المايك"><i id="mute-icon" class="fa-solid fa-microphone"></i></button>
-                    <button id="deafen-btn" class="undeafened" title="كتم السمع"><i id="deafen-icon" class="fa-solid fa-headphones"></i></button>
-                    <button class="settings-btn"><i class="fa-solid fa-gear"></i></button>
+        <!-- إحصائيات المهام -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>إجمالي المهام</h4>
+                <span id="statTotal">0</span>
+            </div>
+            <div class="stat-card">
+                <h4>المكتملة</h4>
+                <span id="statCompleted" style="color: var(--success);">0</span>
+            </div>
+            <div class="stat-card">
+                <h4>غير المكتملة</h4>
+                <span id="statOverdue" style="color: var(--danger);">0</span>
+            </div>
+            <div class="stat-card">
+                <h4>نسبة الإنجاز</h4>
+                <span id="statPercentage">0%</span>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 3. منطقة الشات الكتابي -->
-        <div class="chat-container" id="text-chat-view">
-            <div class="chat-header">
-                <i class="fa-solid fa-hashtag header-icon"></i>
-                <span class="header-title">عام</span>
-                <div class="header-divider"></div>
-                <span class="header-desc">مرحباً بك في الشات الكتابي العام</span>
-            </div>
-            
-            <div class="messages-view" id="chat-box"></div>
-
-            <div class="chat-input-wrapper">
-                <div class="input-container">
-                    <i class="fa-solid fa-circle-plus input-icon-plus"></i>
-                    <input type="text" id="message-input" placeholder="اكتب رسالة في #عام...">
-                </div>
-                <button id="send-btn">إرسال</button>
-            </div>
+        <!-- نموذج إضافة مهمة -->
+        <div class="task-form">
+            <input type="text" id="taskInput" placeholder="أدخل اسم المهمة الجديدة...">
+            <input type="time" id="taskTimeInput">
+            <button class="add-btn" onclick="handleTaskSubmit()">إضافة مهمة</button>
         </div>
 
-        <!-- 4. منطقة الروم الصوتي (المربعات الكبار المحدثة) -->
-        <div class="chat-container" id="voice-room-view" style="display: none;">
-            <div class="chat-header">
-                <i class="fa-solid fa-volume-high header-icon"></i>
-                <span class="header-title">روم_المايك</span>
-                <div class="header-divider"></div>
-                <span class="header-desc">المتحدثون ف الروم الحالي</span>
-            </div>
-            
-            <!-- شبكة المربعات الكبار (Voice Grid) -->
-            <div class="voice-grid-container" id="voice-grid">
-                <!-- المربعات غاتقاد وتتحذف هنا تلقائياً بالجافا سكريبت -->
-            </div>
+        <!-- قائمة مهام اليوم المختار -->
+        <div class="tasks-section">
+            <h3 id="selectedDateTitle">مهام اليوم</h3>
+            <ul class="task-list" id="taskList">
+                <!-- يتم تعبئتها ديناميكياً -->
+            </ul>
         </div>
 
     </div>
 
-    <audio id="remote-audio" autoplay></audio>
-    <script src="script.js"></script>
+    <script>
+        // المتغيرات العامة
+        let currentUser = null;
+        let tasks = [];
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let viewMonth = new Date().getMonth();
+        let viewYear = new Date().getFullYear();
+        let editingTaskId = null;
+
+        const monthsArabic = [
+            "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+            "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        ];
+
+        const daysArabic = [
+            "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"
+        ];
+
+        window.onload = function() {
+            checkAuth();
+        };
+
+        // فك تشفير JWT Token القادم من جوجل لاستخراج بيانات المستخدم
+        function parseJwt(token) {
+            try {
+                var base64Url = token.split('.')[1];
+                var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // دالة الرد التلقائي عند نجاح تسجيل الدخول بجوجل
+        function handleGoogleSignIn(response) {
+            const responsePayload = parseJwt(response.credential);
+            if (responsePayload) {
+                currentUser = {
+                    name: responsePayload.name,
+                    email: responsePayload.email,
+                    avatar: responsePayload.picture
+                };
+                localStorage.setItem('google_user', JSON.stringify(currentUser));
+                showApp();
+            }
+        }
+
+        function checkAuth() {
+            const savedUser = localStorage.getItem('google_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp();
+            } else {
+                showAuth();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('google_user');
+            currentUser = null;
+            showAuth();
+            // إعادة تحميل الصفحة لضمان إعادة تهيئة زر جوجل بسلام
+            window.location.reload();
+        }
+
+        function showAuth() {
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('appScreen').style.display = 'none';
+        }
+
+        function showApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'block';
+            
+            document.getElementById('userName').innerText = currentUser.name;
+            document.getElementById('userEmail').innerText = currentUser.email;
+            document.getElementById('userAvatar').src = currentUser.avatar;
+
+            loadTasksFromStorage();
+            updateTodayHeader();
+            renderCalendar();
+            renderTasks();
+            updateStats();
+        }
+
+        function getStorageKey() {
+            return 'tasks_' + currentUser.email;
+        }
+
+        function loadTasksFromStorage() {
+            const data = localStorage.getItem(getStorageKey());
+            tasks = data ? JSON.parse(data) : [];
+        }
+
+        function saveTasksToStorage() {
+            localStorage.setItem(getStorageKey(), JSON.stringify(tasks));
+        }
+
+        function updateTodayHeader() {
+            const dayName = daysArabic[currentDate.getDay()];
+            const dayNum = currentDate.getDate();
+            const monthName = monthsArabic[currentDate.getMonth()];
+            const year = currentDate.getFullYear();
+            document.getElementById('todayHeaderString').innerText = `${dayName} ${dayNum} ${monthName} ${year}`;
+        }
+
+        function goToToday() {
+            selectedDate = new Date();
+            viewMonth = selectedDate.getMonth();
+            viewYear = selectedDate.getFullYear();
+            renderCalendar();
+            renderTasks();
+        }
+
+        function renderCalendar() {
+            const monthYearEl = document.getElementById('calendarMonthYear');
+            monthYearEl.innerText = `${monthsArabic[viewMonth]} ${viewYear}`;
+
+            const daysContainer = document.getElementById('calendarDays');
+            daysContainer.innerHTML = '';
+
+            const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
+            const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+            const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+            for (let i = firstDayIndex - 1; i >= 0; i--) {
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('calendar-day', 'other-month');
+                dayDiv.innerText = prevMonthDays - i;
+                daysContainer.appendChild(dayDiv);
+            }
+
+            for (let d = 1; d <= totalDays; d++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('calendar-day');
+                dayDiv.innerText = d;
+
+                const thisLoopDate = new Date(viewYear, viewMonth, d);
+                
+                if (isSameDate(thisLoopDate, currentDate)) {
+                    dayDiv.classList.add('today-marker');
+                }
+
+                if (isSameDate(thisLoopDate, selectedDate)) {
+                    dayDiv.classList.add('selected');
+                }
+
+                dayDiv.onclick = () => {
+                    selectedDate = new Date(viewYear, viewMonth, d);
+                    renderCalendar();
+                    renderTasks();
+                };
+
+                daysContainer.appendChild(dayDiv);
+            }
+        }
+
+        function changeMonth(direction) {
+            viewMonth += direction;
+            if (viewMonth > 11) {
+                viewMonth = 0;
+                viewYear++;
+            } else if (viewMonth < 0) {
+                viewMonth = 11;
+                viewYear--;
+            }
+            renderCalendar();
+        }
+
+        function isSameDate(d1, d2) {
+            return d1.getFullYear() === d2.getFullYear() &&
+                   d1.getMonth() === d2.getMonth() &&
+                   d1.getDate() === d2.getDate();
+        }
+
+        function formatDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function handleTaskSubmit() {
+            const input = document.getElementById('taskInput');
+            const timeInput = document.getElementById('taskTimeInput');
+            const text = input.value.trim();
+            const time = timeInput.value;
+
+            if (!text) return;
+
+            const dateKey = formatDateKey(selectedDate);
+
+            if (editingTaskId) {
+                tasks = tasks.map(t => {
+                    if (t.id === editingTaskId) {
+                        t.text = text;
+                        t.time = time;
+                    }
+                    return t;
+                });
+                editingTaskId = null;
+                document.querySelector('.add-btn').innerText = "إضافة مهمة";
+            } else {
+                const newTask = {
+                    id: Date.now().toString(),
+                    dateKey: dateKey,
+                    text: text,
+                    time: time || "",
+                    completed: false
+                };
+                tasks.push(newTask);
+            }
+
+            input.value = '';
+            timeInput.value = '';
+            saveTasksToStorage();
+            renderTasks();
+            updateStats();
+        }
+
+        function renderTasks() {
+            const taskListEl = document.getElementById('taskList');
+            const selectedDateTitleEl = document.getElementById('selectedDateTitle');
+            
+            const dayName = daysArabic[selectedDate.getDay()];
+            selectedDateTitleEl.innerText = `مهام يوم ${dayName} ${selectedDate.getDate()} ${monthsArabic[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
+
+            const dateKey = formatDateKey(selectedDate);
+            const currentDayTasks = tasks.filter(t => t.dateKey === dateKey);
+
+            taskListEl.innerHTML = '';
+
+            if (currentDayTasks.length === 0) {
+                taskListEl.innerHTML = `<div class="empty-state">لا توجد مهام مسجلة لهذا اليوم. أضف مهمة جديدة بالأعلى!</div>`;
+                return;
+            }
+
+            const nowReal = new Date();
+
+            currentDayTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+
+                const taskDateObj = new Date(task.dateKey);
+                const isPastDay = isDateBefore(taskDateObj, nowReal);
+
+                let statusClass = '';
+                if (task.completed) {
+                    statusClass = 'completed';
+                } else if (isPastDay) {
+                    statusClass = 'overdue';
+                }
+
+                if (statusClass) {
+                    li.classList.add(statusClass);
+                }
+
+                li.innerHTML = `
+                    <div class="task-info">
+                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}')">
+                        <div class="task-details">
+                            <span class="task-title">${escapeHtml(task.text)}</span>
+                            ${task.time ? `<span class="task-time">⏰ ${task.time}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="action-btn edit" onclick="editTask('${task.id}')" title="تعديل">✏️</button>
+                        <button class="action-btn delete" onclick="deleteTask('${task.id}')" title="حذف">🗑️</button>
+                    </div>
+                `;
+                taskListEl.appendChild(li);
+            });
+        }
+
+        function isDateBefore(d1, d2) {
+            const clean1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+            const clean2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+            return clean1 < clean2;
+        }
+
+        function toggleTaskStatus(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    t.completed = !t.completed;
+                }
+                return t;
+            });
+            saveTasksToStorage();
+            renderTasks();
+            updateStats();
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            document.getElementById('taskInput').value = task.text;
+            document.getElementById('taskTimeInput').value = task.time;
+            editingTaskId = id;
+            document.querySelector('.add-btn').innerText = "تحديث المهمة";
+            document.getElementById('taskInput').focus();
+        }
+
+        function deleteTask(id) {
+            if (confirm("هل أنت متأكد من حذف هذه المهمة؟")) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasksToStorage();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const total = tasks.length;
+            const nowReal = new Date();
+
+            let completedCount = 0;
+            let overdueCount = 0;
+
+            tasks.forEach(t => {
+                if (t.completed) {
+                    completedCount++;
+                } else {
+                    const taskDateObj = new Date(t.dateKey);
+                    if (isDateBefore(taskDateObj, nowReal)) {
+                        overdueCount++;
+                    }
+                }
+            });
+
+            const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statCompleted').innerText = completedCount;
+            document.getElementById('statOverdue').innerText = overdueCount;
+            document.getElementById('statPercentage').innerText = percentage + '%';
+            document.getElementById('progressBar').style.width = percentage + '%';
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
 </body>
 </html>
